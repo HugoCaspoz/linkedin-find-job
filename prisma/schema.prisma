@@ -1,0 +1,104 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // Poolers (PgBouncer, Neon, Supabase) can't run migrations; those go direct.
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String
+  name          String?
+  createdAt     DateTime  @default(now())
+  profile       Profile?
+}
+
+model Profile {
+  id           String   @id @default(cuid())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String   @unique
+  linkedinUrl  String?
+  cvText       String?
+  yearsExp     Int?
+  summary      String?
+  updatedAt    DateTime @updatedAt
+  skills       Skill[]
+}
+
+model Skill {
+  id         String   @id @default(cuid())
+  profile    Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  profileId  String
+  name       String
+  category   String?
+  yearsExp   Float?
+  level      String?
+
+  @@unique([profileId, name])
+}
+
+model JobListing {
+  id          String   @id @default(cuid())
+  source      String
+  externalId  String
+  title       String
+  company     String?
+  location    String?
+  url         String
+  description String?
+  /// Null when the source doesn't say — those match any modality filter.
+  workMode    String?
+  postedAt    DateTime?
+  fetchedAt   DateTime @default(now())
+
+  @@unique([source, externalId])
+  @@index([fetchedAt])
+  @@index([workMode])
+}
+
+/// One row per worker cycle, so a cron that silently stopped working is
+/// visible without digging through logs.
+model ScrapeRun {
+  id         String    @id @default(cuid())
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+  queries    Int       @default(0)
+  upserted   Int       @default(0)
+  failures   Int       @default(0)
+  error      String?
+
+  @@index([startedAt])
+}
+
+/// Scrape results, keyed by source+query. Lives in the DB rather than in
+/// process memory so it survives cold starts and is shared across instances —
+/// an in-memory cache means a ~0% hit rate on serverless, which turns into
+/// hammering the scraped sites on every request.
+model ScrapeCache {
+  key       String   @id
+  payload   Json
+  expiresAt DateTime
+
+  @@index([expiresAt])
+}
+
+/// Fixed-window counter for per-user/per-IP API limits.
+model RateLimit {
+  key     String   @id
+  count   Int      @default(0)
+  resetAt DateTime
+
+  @@index([resetAt])
+}
+
+/// Minimum interval between outbound requests to a scraped host, shared
+/// across instances for the same reason as ScrapeCache.
+model HostCooldown {
+  host          String   @id
+  nextAllowedAt DateTime
+}
