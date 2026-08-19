@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { searchAdzuna } from "@/lib/jobSources/adzuna";
 import { searchStoredJobs, indexIsEmpty } from "@/lib/jobQuery";
+import { scoreJob } from "@/lib/matching";
 import { checkRateLimit } from "@/lib/rateLimit";
 import type { WorkMode } from "@/lib/jobSources/types";
 
@@ -64,7 +65,19 @@ export async function GET(req: Request) {
     searchStoredJobs(topSkills, modes),
   ]);
 
-  const jobs = [...adzunaJobs, ...storedJobs];
+  // Adzuna arrives unranked, so it is scored here with the same rule Postgres
+  // applies to the stored listings; otherwise merging the two lists would put
+  // whatever Adzuna returned first above better matches from the index.
+  const scoredAdzuna = adzunaJobs.map((job) => ({
+    ...job,
+    ...scoreJob(job, topSkills),
+  }));
+
+  const jobs = [...scoredAdzuna, ...storedJobs].sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    // Same score: newer first, and listings with no date last.
+    return (b.postedAt ?? "").localeCompare(a.postedAt ?? "");
+  });
 
   // Adzuna results aren't persisted here: they're already a supported API, so
   // there's no reason to keep a local copy just to re-serve it.

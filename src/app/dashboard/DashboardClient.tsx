@@ -31,6 +31,8 @@ interface Job {
   location?: string;
   url: string;
   workMode?: WorkMode;
+  score?: number;
+  matchedSkills?: string[];
 }
 
 /** A 500 can come back as an HTML error page rather than JSON. */
@@ -342,6 +344,19 @@ export function DashboardClient({
                   {j.company} {j.location && `· ${j.location}`}
                   {j.workMode && ` · ${WORK_MODE_LABELS[j.workMode]}`} · vía {j.source}
                 </p>
+                {j.matchedSkills && j.matchedSkills.length > 0 && (
+                  <p className="mt-2 flex flex-wrap items-center gap-1">
+                    <span className="mr-1 text-xs text-zinc-500">Encaja por:</span>
+                    {j.matchedSkills.map((skill) => (
+                      <span
+                        key={skill}
+                        className="rounded-full bg-black/5 px-2 py-0.5 text-xs dark:bg-white/10"
+                      >
+                        {skill}
+                      </span>
+                    ))}
+                  </p>
+                )}
               </li>
             ))}
           </ul>
