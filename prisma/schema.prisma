@@ -59,6 +59,10 @@ model JobListing {
   @@unique([source, externalId])
   @@index([fetchedAt])
   @@index([workMode])
+  /// Trigram indexes: the search matches skills with ILIKE/regex containing a
+  /// leading wildcard, which no btree index can serve.
+  @@index([title(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@index([description(ops: raw("gin_trgm_ops"))], type: Gin)
 }
 
 /// One row per worker cycle, so a cron that silently stopped working is

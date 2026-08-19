@@ -103,6 +103,34 @@ export async function checkRateLimit(
   };
 }
 
+/**
+ * Read-only quota check — unlike `checkRateLimit`, it does not consume any.
+ * Lets a caller count only the attempts it cares about (failed logins) rather
+ * than every attempt, so a legitimate user is never locked out by their own
+ * successful sign-ins.
+ */
+export async function isRateLimited(key: string, limit: number): Promise<boolean> {
+  const row = await prisma.rateLimit.findUnique({
+    where: { key },
+    select: { count: true, resetAt: true },
+  });
+  if (!row) return false;
+  // An expired window is the same as no window at all: the next
+  // `checkRateLimit` write restarts the counter.
+  if (row.resetAt <= new Date()) return false;
+  return row.count >= limit;
+}
+
+/**
+ * The login limiter's key, in one place because two callers depend on the
+ * exact string: the limiter itself and the account deletion that has to purge
+ * it. Truncated because the value ends up in a primary key and nothing has
+ * checked the length of the field it comes from.
+ */
+export function loginEmailKey(email: string): string {
+  return `login:email:${email.slice(0, 160)}`;
+}
+
 /** Best-effort client IP, for limiting endpoints that have no session yet. */
 export function clientIp(req: Request): string {
   const forwarded = req.headers.get("x-forwarded-for");

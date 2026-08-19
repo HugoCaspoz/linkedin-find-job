@@ -25,7 +25,14 @@ export default function LoginPage() {
       });
 
       if (res?.error) {
-        setError("Email o contraseña incorrectos");
+        // `code` comes from the custom CredentialsSignin thrown in
+        // src/lib/auth.ts; anything else stays deliberately generic so a wrong
+        // password and an unknown address look identical.
+        setError(
+          res.code === "rate_limited"
+            ? "Demasiados intentos fallidos. Espera unos minutos."
+            : "Email o contraseña incorrectos"
+        );
         setLoading(false);
         return;
       }

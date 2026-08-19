@@ -31,6 +31,8 @@ interface Job {
   location?: string;
   url: string;
   workMode?: WorkMode;
+  score?: number;
+  matchedSkills?: string[];
 }
 
 /** A 500 can come back as an HTML error page rather than JSON. */
@@ -62,6 +64,11 @@ export function DashboardClient({
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [deletePassword, setDeletePassword] = useState("");
+  const [busyAction, setBusyAction] = useState<"cv" | "account" | null>(null);
+  const [dataError, setDataError] = useState<string | null>(null);
+  const [dataNotice, setDataNotice] = useState<string | null>(null);
 
   const [jobs, setJobs] = useState<Job[]>([]);
   const [searching, setSearching] = useState(false);
@@ -133,6 +140,78 @@ export function DashboardClient({
       setError("No se pudo contactar con el servidor");
     } finally {
       setSearching(false);
+    }
+  }
+
+  async function handleDeleteCv() {
+    if (
+      !confirm(
+        "Se borraran tu CV y las skills detectadas. La cuenta se mantiene. ¿Seguro?"
+      )
+    ) {
+      return;
+    }
+
+    setDataError(null);
+    setDataNotice(null);
+    setBusyAction("cv");
+
+    try {
+      const res = await fetch("/api/profile", { method: "DELETE" });
+      const data = await readJson(res);
+
+      if (!res.ok) {
+        setDataError(errorMessage(data, "No se pudieron borrar los datos"));
+        return;
+      }
+
+      // Everything on screen came from the profile that no longer exists.
+      setProfile(null);
+      setJobs([]);
+      setNotice(null);
+      setDataNotice("CV y skills borrados.");
+    } catch {
+      setDataError("No se pudo contactar con el servidor");
+    } finally {
+      setBusyAction(null);
+    }
+  }
+
+  async function handleDeleteAccount(e: React.FormEvent) {
+    e.preventDefault();
+
+    if (
+      !confirm(
+        "Esto borra tu cuenta y todos tus datos de forma permanente. No se puede deshacer. ¿Seguro?"
+      )
+    ) {
+      return;
+    }
+
+    setDataError(null);
+    setDataNotice(null);
+    setBusyAction("account");
+
+    try {
+      const res = await fetch("/api/account", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: deletePassword }),
+      });
+      const data = await readJson(res);
+
+      if (!res.ok) {
+        setDataError(errorMessage(data, "No se pudo borrar la cuenta"));
+        return;
+      }
+
+      // The token stays valid until it expires, so signing out is what
+      // actually ends the session for this browser.
+      await signOut({ callbackUrl: "/" });
+    } catch {
+      setDataError("No se pudo contactar con el servidor");
+    } finally {
+      setBusyAction(null);
     }
   }
 
@@ -265,11 +344,86 @@ export function DashboardClient({
                   {j.company} {j.location && `· ${j.location}`}
                   {j.workMode && ` · ${WORK_MODE_LABELS[j.workMode]}`} · vía {j.source}
                 </p>
+                {j.matchedSkills && j.matchedSkills.length > 0 && (
+                  <p className="mt-2 flex flex-wrap items-center gap-1">
+                    <span className="mr-1 text-xs text-zinc-500">Encaja por:</span>
+                    {j.matchedSkills.map((skill) => (
+                      <span
+                        key={skill}
+                        className="rounded-full bg-black/5 px-2 py-0.5 text-xs dark:bg-white/10"
+                      >
+                        {skill}
+                      </span>
+                    ))}
+                  </p>
+                )}
               </li>
             ))}
           </ul>
         </div>
       )}
+
+      <section className="mt-14 rounded-xl border border-black/10 p-6 dark:border-white/10">
+        <h2 className="font-medium">Tus datos</h2>
+        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+          Guardamos el texto completo de tu CV para detectar tus skills. Puedes
+          descargarlo o borrarlo cuando quieras.
+        </p>
+
+        {dataError && <p className="mt-4 text-sm text-red-600">{dataError}</p>}
+        {dataNotice && (
+          <p className="mt-4 text-sm text-green-700 dark:text-green-500">{dataNotice}</p>
+        )}
+
+        <div className="mt-5 flex flex-wrap gap-3">
+          <a
+            href="/api/account/export"
+            className="rounded-md border border-black/20 px-4 py-2 text-sm dark:border-white/20"
+          >
+            Descargar mis datos (JSON)
+          </a>
+          <button
+            type="button"
+            onClick={handleDeleteCv}
+            disabled={busyAction !== null}
+            className="rounded-md border border-black/20 px-4 py-2 text-sm disabled:opacity-50 dark:border-white/20"
+          >
+            {busyAction === "cv" ? "Borrando..." : "Borrar mi CV y mis skills"}
+          </button>
+        </div>
+
+        <form
+          onSubmit={handleDeleteAccount}
+          className="mt-8 border-t border-black/10 pt-6 dark:border-white/10"
+        >
+          <h3 className="text-sm font-medium text-red-700 dark:text-red-500">
+            Borrar mi cuenta
+          </h3>
+          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+            Borra la cuenta y todos los datos asociados. No se puede deshacer.
+            Confirma con tu contraseña.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-3">
+            <input
+              type="password"
+              required
+              autoComplete="current-password"
+              placeholder="Tu contraseña"
+              value={deletePassword}
+              onChange={(e) => setDeletePassword(e.target.value)}
+              className="rounded-md border border-black/20 px-3 py-2 text-sm dark:border-white/20 dark:bg-transparent"
+            />
+            <button
+              type="submit"
+              disabled={busyAction !== null || !deletePassword}
+              className="rounded-md bg-red-600 px-4 py-2 text-sm text-white disabled:opacity-50"
+            >
+              {busyAction === "account" ? "Borrando..." : "Borrar mi cuenta"}
+            </button>
+          </div>
+        </form>
+      </section>
+
     </div>
   );
 }

@@ -1,0 +1,54 @@
+<!--
+  Shape of the markup that linkedin.com/jobs-guest/.../seeMoreJobPostings/search
+  returns, reduced to the parts scrapeLinkedIn actually selects.
+
+  Cards on purpose: one complete, one missing data-entity-urn (must be
+  skipped), one missing the full link (must be skipped), one with no <time>
+  and no company (optional fields must come back undefined).
+-->
+<ul class="jobs-search__results-list">
+  <li>
+    <div class="base-card relative job-search-card" data-entity-urn="urn:li:jobPosting:3812345678">
+      <a class="base-card__full-link" href="https://es.linkedin.com/jobs/view/senior-react-developer-at-acme-3812345678?trk=public_jobs&amp;position=1"></a>
+      <div class="base-search-card__info">
+        <h3 class="base-search-card__title">
+              Senior React Developer
+            </h3>
+        <h4 class="base-search-card__subtitle">
+          <a class="hidden-nested-link">Acme Corp</a>
+        </h4>
+        <div class="base-search-card__metadata">
+          <span class="job-search-card__location">Madrid, Community of Madrid, Spain</span>
+          <time class="job-search-card__listdate" datetime="2026-08-14">hace 5 dias</time>
+        </div>
+      </div>
+    </div>
+  </li>
+  <li>
+    <div class="base-card relative job-search-card">
+      <a class="base-card__full-link" href="https://es.linkedin.com/jobs/view/sin-urn-9999999999"></a>
+      <div class="base-search-card__info">
+        <h3 class="base-search-card__title">Oferta sin URN</h3>
+      </div>
+    </div>
+  </li>
+  <li>
+    <div class="base-card relative job-search-card" data-entity-urn="urn:li:jobPosting:4000000000">
+      <div class="base-search-card__info">
+        <h3 class="base-search-card__title">Oferta sin enlace</h3>
+      </div>
+    </div>
+  </li>
+  <li>
+    <div class="base-card relative job-search-card" data-entity-urn="urn:li:jobPosting:3899999999">
+      <a class="base-card__full-link" href="https://es.linkedin.com/jobs/view/data-engineer-3899999999"></a>
+      <div class="base-search-card__info">
+        <h3 class="base-search-card__title">Data Engineer</h3>
+        <h4 class="base-search-card__subtitle"></h4>
+        <div class="base-search-card__metadata">
+          <span class="job-search-card__location">Remote</span>
+        </div>
+      </div>
+    </div>
+  </li>
+</ul>
