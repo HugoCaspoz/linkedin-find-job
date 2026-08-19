@@ -37,6 +37,18 @@ export async function POST(req: Request) {
     );
   }
 
+  // A JWT keeps naming a user after the row is deleted (jwt strategy, no
+  // server-side session store). Checked here, before the PDF parse and the
+  // paid Claude call, so a stale token cannot cost money and then die on a
+  // foreign-key violation at the final upsert.
+  const userExists = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { id: true },
+  });
+  if (!userExists) {
+    return NextResponse.json({ error: "La cuenta ya no existe" }, { status: 401 });
+  }
+
   const formData = await req.formData();
 
   const cv = formData.get("cv");
