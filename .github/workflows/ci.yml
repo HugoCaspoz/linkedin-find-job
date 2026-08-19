@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A second push to the same branch makes the first run pointless.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Typecheck, lint, test, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      # `postinstall` runs `prisma generate`, so the client exists from here on.
+      - run: npm ci
+
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+
+      # No secrets on purpose: `next build` must not need them. Env validation
+      # runs at server start (src/instrumentation.ts), not at build time, and
+      # this step is what keeps that true.
+      - run: npm run build
+
+  migrations:
+    name: Migrations apply and match the schema
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: link
+          POSTGRES_PASSWORD: link
+          POSTGRES_DB: link
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U link -d link"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://link:link@localhost:5432/link?schema=public
+      DIRECT_URL: postgresql://link:link@localhost:5432/link?schema=public
+      SHADOW_DATABASE_URL: postgresql://link:link@localhost:5432/shadow?schema=public
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      # Catches a migration that is broken or out of order, which otherwise
+      # only shows up in Railway's preDeployCommand with the deploy half done.
+      - name: Apply migrations to an empty database
+        run: npx prisma migrate deploy
+
+      # Via Prisma rather than createdb, so the job does not depend on the
+      # runner image shipping postgresql-client.
+      - name: Create the shadow database for the drift check
+        run: echo 'CREATE DATABASE shadow;' | npx prisma db execute --url "$DATABASE_URL" --stdin
+
+      # Fails when schema.prisma has changes nobody generated a migration for,
+      # which would otherwise deploy as a silent no-op and break at runtime.
+      - name: Fail if schema.prisma drifts from the migrations
+        run: |
+          npx prisma migrate diff             --from-migrations prisma/migrations             --to-schema-datamodel prisma/schema.prisma             --shadow-database-url "$SHADOW_DATABASE_URL"             --exit-code
