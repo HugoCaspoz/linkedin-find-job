@@ -1,26 +1,67 @@
 @import "tailwindcss";
 
+/**
+ * Semantic tokens rather than raw palette classes. The dark variants used to
+ * be spelled out at every call site (`text-zinc-600 dark:text-zinc-400`), which
+ * is how half of them ended up missing their dark half and failing contrast.
+ * One name, defined once per appearance, can't drift.
+ */
 :root {
-  --background: #ffffff;
+  /* Page sits slightly below the cards so a surface reads as raised without
+     needing a heavy border. */
+  --canvas: #fafafa;
+  --surface: #ffffff;
   --foreground: #171717;
-}
+  --muted: #52525b; /* 7.4:1 on --canvas */
+  --line: rgb(0 0 0 / 0.10);
+  --line-strong: rgb(0 0 0 / 0.45); /* 3.4:1 — form fields lean on this */
+  --accent: #2563eb; /* 5.2:1 on --surface */
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Native controls — checkboxes, selects, scrollbars — follow this property,
+     not our custom variables. Without it they keep light-mode chrome on the
+     dark page, so a checked box stayed white on near-black. */
+  color-scheme: light dark;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
+    --canvas: #0a0a0a;
+    --surface: #161616;
     --foreground: #ededed;
+    --muted: #a1a1aa; /* 7.0:1 on --surface */
+    --line: rgb(255 255 255 / 0.12);
+    --line-strong: rgb(255 255 255 / 0.40);
+    --accent: #60a5fa; /* 7.0:1 on --surface */
   }
 }
 
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-accent: var(--accent);
+
+  /* Fallback chain matters: global-error.tsx replaces the root layout, so the
+     next/font variable is undefined there and an unguarded var() would drop
+     the whole declaration and render that page in the browser serif. */
+  --font-sans: var(--font-geist-sans, ui-sans-serif, system-ui, sans-serif);
+  --font-mono: var(--font-geist-mono, ui-monospace, monospace);
+}
+
+/* No font-family here: Tailwind's preflight already resolves it through
+   --font-sans, which points at Geist. Setting Arial on the body overrode that
+   and rendered Arial while still paying to download Geist. */
 body {
-  background: var(--background);
+  background: var(--canvas);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Nothing in the app defined a focus style, and the UA default ring is
+   invisible against the filled black/white buttons. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }

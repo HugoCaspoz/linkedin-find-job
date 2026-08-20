@@ -217,36 +217,44 @@ LinkedIn esté accesible.
 #### Correr el worker
 
 ```bash
-npm run scrape                                # queries derivadas de las skills de los usuarios
-npm run scrape -- --queries "React,Python"    # queries concretas
-npm run scrape -- --max 10                    # tope de queries
+npm run scrape:prod                                # contra la DB de Railway (.env.worker)
+npm run scrape                                     # contra la DB local (.env)
+npm run scrape:prod -- --queries "React,Python"    # queries concretas
+npm run scrape:prod -- --max 10                    # tope de queries
 ```
+
+Son dos scripts porque son dos bases de datos: `scrape` usa `.env` (Postgres
+local de desarrollo) y `scrape:prod` usa `.env.worker` (la de Railway, que
+sirve a los usuarios). Con un solo fichero habría que comentar y descomentar
+líneas cada vez, que es justo como se acaba indexando en la base equivocada.
 
 **Dónde correrlo.** Lo mejor es una máquina de casa: la IP residencial es la que
 menos sospecha levanta, y el coste es cero. El worker solo necesita llegar a
-Postgres, así que apunta su `.env` a la URL **pública** de la DB de Railway
+Postgres, así que apunta su `.env.worker` a la URL **pública** de la DB de Railway
 (`DATABASE_PUBLIC_URL` en las variables del servicio Postgres — la
 `DATABASE_URL` normal es `*.railway.internal` y solo resuelve dentro de
 Railway).
 
-`.env` en la máquina del worker:
+`.env.worker` en la máquina del worker (plantilla en `.env.worker.example`):
 
 ```
 DATABASE_URL="<DATABASE_PUBLIC_URL de Railway>"
 DIRECT_URL="<la misma>"
-AUTH_SECRET="<cualquier cadena de 32+ chars, el worker no la usa pero se valida>"
 ```
+
+No hace falta `AUTH_SECRET`: el worker no llega a `env()` en ningún momento, así
+que nunca se valida.
 
 En Windows, tarea programada cada 6 horas:
 
 ```powershell
-schtasks /create /tn "link-scrape" /tr "cmd /c cd /d C:\code\prueba\link && npm run scrape >> scrape.log 2>&1" /sc hourly /mo 6
+schtasks /create /tn "link-scrape" /tr "cmd /c cd /d C:\code\prueba\link && npm run scrape:prod >> scrape.log 2>&1" /sc hourly /mo 6
 ```
 
 En Linux/macOS, cron:
 
 ```cron
-0 */6 * * * cd /srv/link && npm run scrape >> /var/log/link-scrape.log 2>&1
+0 */6 * * * cd /srv/link && npm run scrape:prod >> /var/log/link-scrape.log 2>&1
 ```
 
 Si el PC está apagado, el índice deja de refrescarse. Las ofertas se sirven
