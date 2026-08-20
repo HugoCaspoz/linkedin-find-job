@@ -22,8 +22,24 @@ import {
   selectClass,
   inputClass,
 } from "@/components/ui";
+import { DEFAULT_PER_PAGE, PAGE_SIZES } from "@/lib/jobQuery";
 import type { WorkMode } from "@/lib/jobSources/types";
 import type { Seniority } from "@/lib/seniority";
+
+type View = "list" | "grid";
+
+/**
+ * An applied filter, described rather than bound to a handler. The `kind` is
+ * what `removeChip` switches on, so the union is exhaustive by construction —
+ * adding a filter without teaching the remover about it fails to compile.
+ */
+type AppliedChip =
+  | { key: string; label: string; kind: "skill"; value: string }
+  | { key: string; label: string; kind: "seniority"; value: SeniorityFilter }
+  | { key: string; label: string; kind: "mode"; value: WorkMode }
+  | { key: string; label: string; kind: "source"; value: string }
+  | { key: string; label: string; kind: "days" }
+  | { key: string; label: string; kind: "location" };
 
 type SeniorityFilter = Seniority | "unspecified";
 
@@ -97,7 +113,54 @@ export function EmpleosClient({ skills, defaultSkills, sources }: Props) {
     searchParams.get("sort") === "date" ? "date" : "relevance"
   );
 
+  const [page, setPage] = useState(() => {
+    const raw = Number(searchParams.get("page"));
+    return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 1;
+  });
+  const [perPage, setPerPage] = useState(() => {
+    const raw = Number(searchParams.get("porPagina"));
+    return (PAGE_SIZES as readonly number[]).includes(raw) ? raw : DEFAULT_PER_PAGE;
+  });
+  const [view, setView] = useState<View>(() =>
+    searchParams.get("vista") === "grid" ? "grid" : "list"
+  );
+
+  /**
+   * Anything that changes *which* listings match has to send you back to page
+   * one. Narrowing a four-page result to one page while sitting on page three
+   * would otherwise show an empty screen and look like a bug.
+   *
+   * Done in the setters rather than in an effect on purpose: an effect would
+   * fire a search on the stale page first and a second one after the reset,
+   * spending two of the sixty searches an hour on one click.
+   */
+  function resetPage<T>(apply: (value: T) => void) {
+    return (value: T) => {
+      apply(value);
+      setPage(1);
+    };
+  }
+
+  const toggleSkill = resetPage((v: string) =>
+    setSelectedSkills((prev) => toggle(prev, v))
+  );
+  const toggleSeniority = resetPage((v: SeniorityFilter) =>
+    setSelectedSeniority((prev) => toggle(prev, v))
+  );
+  const toggleMode = resetPage((v: WorkMode) =>
+    setSelectedModes((prev) => toggle(prev, v))
+  );
+  const toggleSource = resetPage((v: string) =>
+    setSelectedSources((prev) => toggle(prev, v))
+  );
+  const changeDays = resetPage(setDays);
+  const changeLocation = resetPage(setLocation);
+  const changeSort = resetPage(setSort);
+  const changePerPage = resetPage(setPerPage);
+
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [total, setTotal] = useState(0);
+  const [pages, setPages] = useState(1);
   const [searching, setSearching] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -120,8 +183,29 @@ export function EmpleosClient({ skills, defaultSkills, sources }: Props) {
     if (days) params.set("days", days);
     if (location.trim()) params.set("location", location.trim());
     if (sort === "date") params.set("sort", "date");
+    if (page > 1) params.set("page", String(page));
+    if (perPage !== DEFAULT_PER_PAGE) params.set("perPage", String(perPage));
     return params.toString();
-  }, [selectedSkills, selectedModes, selectedSeniority, selectedSources, days, location, sort]);
+  }, [selectedSkills, selectedModes, selectedSeniority, selectedSources, days, location, sort, page, perPage]);
+
+  /**
+   * The address bar carries the view too, so a shared link reproduces what the
+   * sender was looking at. It is kept out of `query` because it changes nothing
+   * the server computes — putting it there would re-run the search to rearrange
+   * cards the browser already has.
+   */
+  const url = useMemo(() => {
+    const params = new URLSearchParams(query);
+    // The API spells it perPage; the address bar is in Spanish like the rest of
+    // the interface.
+    const perPageParam = params.get("perPage");
+    if (perPageParam) {
+      params.delete("perPage");
+      params.set("porPagina", perPageParam);
+    }
+    if (view === "grid") params.set("vista", "grid");
+    return params.toString();
+  }, [query, view]);
 
   const runSearch = useCallback(async (qs: string, signal: AbortSignal) => {
     setSearching(true);
@@ -134,11 +218,15 @@ export function EmpleosClient({ skills, defaultSkills, sources }: Props) {
       if (!res.ok) {
         setError(errorMessage(data, "Error buscando empleos"));
         setJobs([]);
+        setTotal(0);
+        setPages(1);
         setNotice(null);
         return;
       }
 
       setJobs(data.jobs ?? []);
+      setTotal(typeof data.total === "number" ? data.total : (data.jobs?.length ?? 0));
+      setPages(typeof data.pages === "number" ? data.pages : 1);
       setNotice(typeof data.notice === "string" ? data.notice : null);
     } catch (err) {
       // An aborted request is the previous search being superseded, not a
@@ -146,6 +234,8 @@ export function EmpleosClient({ skills, defaultSkills, sources }: Props) {
       if (err instanceof DOMException && err.name === "AbortError") return;
       setError("No se pudo contactar con el servidor");
       setJobs([]);
+      setTotal(0);
+      setPages(1);
     } finally {
       setHasSearched(true);
       setSearching(false);
@@ -162,7 +252,6 @@ export function EmpleosClient({ skills, defaultSkills, sources }: Props) {
     firstRun.current = false;
 
     const timer = setTimeout(() => {
-      router.replace(query ? `/empleos?${query}` : "/empleos", { scroll: false });
       runSearch(query, controller.signal);
     }, delay);
 
@@ -170,44 +259,56 @@ export function EmpleosClient({ skills, defaultSkills, sources }: Props) {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [query, router, runSearch]);
+  }, [query, runSearch]);
+
+  // Separate from the search: the view lives in the URL but changes nothing the
+  // server computes, so writing the address bar has to be able to happen
+  // without a request going out.
+  useEffect(() => {
+    router.replace(url ? `/empleos?${url}` : "/empleos", { scroll: false });
+  }, [url, router]);
 
   const activeSkills = selectedSkills.length > 0 ? selectedSkills : defaultSkills;
 
   /**
-   * Every applied filter as a removable chip. This is the part that makes the
-   * panel legible: the sidebar shows what you *could* pick, and this row shows
-   * what you *did*, without scrolling back up to count ticked boxes.
+   * Every applied filter, as data. This is the part that makes the panel
+   * legible: the sidebar shows what you *could* pick, and this row shows what
+   * you *did*, without scrolling back up to count ticked chips.
+   *
+   * It deliberately holds no callbacks. Closing over the handlers would pull
+   * six functions that are rebuilt every render into the dependency list, so
+   * the memo would recompute every render and buy nothing — and leaving them
+   * out is the stale-closure bug the lint rule is warning about. Describing the
+   * filter and letting `removeChip` act on it sidesteps both.
    */
-  const applied = useMemo(() => {
-    const chips: { key: string; label: string; remove: () => void }[] = [];
+  const applied = useMemo<AppliedChip[]>(() => {
+    const chips: AppliedChip[] = [];
 
-    for (const skill of selectedSkills) {
+    for (const value of selectedSkills) {
+      chips.push({ key: `skill:${value}`, label: value, kind: "skill", value });
+    }
+    for (const value of selectedSeniority) {
       chips.push({
-        key: `skill:${skill}`,
-        label: skill,
-        remove: () => setSelectedSkills((prev) => prev.filter((s) => s !== skill)),
+        key: `sen:${value}`,
+        label: SENIORITY_FILTER_LABELS[value],
+        kind: "seniority",
+        value,
       });
     }
-    for (const level of selectedSeniority) {
+    for (const value of selectedModes) {
       chips.push({
-        key: `sen:${level}`,
-        label: SENIORITY_FILTER_LABELS[level],
-        remove: () => setSelectedSeniority((prev) => prev.filter((s) => s !== level)),
+        key: `mode:${value}`,
+        label: WORK_MODE_LABELS[value],
+        kind: "mode",
+        value,
       });
     }
-    for (const mode of selectedModes) {
+    for (const value of selectedSources) {
       chips.push({
-        key: `mode:${mode}`,
-        label: WORK_MODE_LABELS[mode],
-        remove: () => setSelectedModes((prev) => prev.filter((m) => m !== mode)),
-      });
-    }
-    for (const source of selectedSources) {
-      chips.push({
-        key: `src:${source}`,
-        label: sourceLabel(source),
-        remove: () => setSelectedSources((prev) => prev.filter((s) => s !== source)),
+        key: `src:${value}`,
+        label: sourceLabel(value),
+        kind: "source",
+        value,
       });
     }
     if (days) {
@@ -215,19 +316,32 @@ export function EmpleosClient({ skills, defaultSkills, sources }: Props) {
       chips.push({
         key: "days",
         label: range?.label ?? `${days} días`,
-        remove: () => setDays(""),
+        kind: "days",
       });
     }
     if (location.trim()) {
-      chips.push({
-        key: "loc",
-        label: location.trim(),
-        remove: () => setLocation(""),
-      });
+      chips.push({ key: "loc", label: location.trim(), kind: "location" });
     }
 
     return chips;
   }, [selectedSkills, selectedSeniority, selectedModes, selectedSources, days, location]);
+
+  function removeChip(chip: AppliedChip) {
+    switch (chip.kind) {
+      case "skill":
+        return toggleSkill(chip.value);
+      case "seniority":
+        return toggleSeniority(chip.value);
+      case "mode":
+        return toggleMode(chip.value);
+      case "source":
+        return toggleSource(chip.value);
+      case "days":
+        return changeDays("");
+      case "location":
+        return changeLocation("");
+    }
+  }
 
   function clearFilters() {
     setSelectedSkills([]);
@@ -237,6 +351,7 @@ export function EmpleosClient({ skills, defaultSkills, sources }: Props) {
     setDays("");
     setLocation("");
     setSort("relevance");
+    setPage(1);
   }
 
   return (
@@ -248,24 +363,44 @@ export function EmpleosClient({ skills, defaultSkills, sources }: Props) {
         <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
           <div className="min-w-0">
             <h1 className="text-2xl font-semibold tracking-tight">
-              {searching ? "Buscando…" : `${jobs.length} ofertas`}
+              {searching ? "Buscando…" : `${total} ${total === 1 ? "oferta" : "ofertas"}`}
             </h1>
             <p className="mt-1 text-sm text-muted">
               Según tus skills: {activeSkills.join(", ")}
+              {pages > 1 && ` · página ${page} de ${pages}`}
             </p>
           </div>
 
-          <label className="flex shrink-0 items-center gap-2 text-sm text-muted">
-            Ordenar
-            <select
-              value={sort}
-              onChange={(e) => setSort(e.target.value)}
-              className={selectClass("w-auto min-w-36")}
-            >
-              <option value="relevance">Relevancia</option>
-              <option value="date">Más recientes</option>
-            </select>
-          </label>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <ViewToggle view={view} onChange={setView} />
+
+            <label className="flex items-center gap-2 text-sm text-muted">
+              Por página
+              <select
+                value={perPage}
+                onChange={(e) => changePerPage(Number(e.target.value))}
+                className={selectClass("w-auto")}
+              >
+                {PAGE_SIZES.map((size) => (
+                  <option key={size} value={size}>
+                    {size}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="flex items-center gap-2 text-sm text-muted">
+              Ordenar
+              <select
+                value={sort}
+                onChange={(e) => changeSort(e.target.value)}
+                className={selectClass("w-auto min-w-36")}
+              >
+                <option value="relevance">Relevancia</option>
+                <option value="date">Más recientes</option>
+              </select>
+            </label>
+          </div>
         </div>
 
         {/* Status feedback sits with the thing it describes, rather than as a
@@ -280,7 +415,7 @@ export function EmpleosClient({ skills, defaultSkills, sources }: Props) {
             {applied.map((chip) => (
               <button
                 key={chip.key}
-                onClick={chip.remove}
+                onClick={() => removeChip(chip)}
                 className="motion-fade inline-flex min-h-9 items-center gap-1.5 rounded-full bg-accent-soft px-3 text-sm text-accent transition hover:opacity-80 active:scale-95"
               >
                 {chip.label}
@@ -327,7 +462,7 @@ export function EmpleosClient({ skills, defaultSkills, sources }: Props) {
         </div>
 
         {searching && jobs.length === 0 ? (
-          <div className="space-y-3">
+          <div className={view === "grid" ? GRID_CLASS : "space-y-3"}>
             {[0, 1, 2, 3].map((i) => (
               <div key={i} className="rounded-2xl border border-line bg-surface p-5">
                 <Skeleton className="h-5 w-2/3" />
@@ -346,12 +481,24 @@ export function EmpleosClient({ skills, defaultSkills, sources }: Props) {
           // swaps contents with no sign that anything changed.
           <ul
             key={query}
-            className={cx("space-y-3", searching && "opacity-60 transition-opacity")}
+            className={cx(
+              view === "grid" ? GRID_CLASS : "space-y-3",
+              searching && "opacity-60 transition-opacity"
+            )}
           >
             {jobs.map((job, i) => (
-              <JobCard key={`${job.source}-${job.url}-${i}`} job={job} index={i} />
+              <JobCard
+                key={`${job.source}-${job.url}-${i}`}
+                job={job}
+                index={i}
+                view={view}
+              />
             ))}
           </ul>
+        )}
+
+        {pages > 1 && (
+          <Pagination page={page} pages={pages} onChange={setPage} />
         )}
       </section>
 
@@ -389,7 +536,7 @@ export function EmpleosClient({ skills, defaultSkills, sources }: Props) {
                   key={skill}
                   label={skill}
                   checked={selectedSkills.includes(skill)}
-                  onChange={() => setSelectedSkills((prev) => toggle(prev, skill))}
+                  onChange={() => toggleSkill(skill)}
                 />
               ))}
             </ChipRow>
@@ -402,7 +549,7 @@ export function EmpleosClient({ skills, defaultSkills, sources }: Props) {
                   key={level}
                   label={SENIORITY_FILTER_LABELS[level]}
                   checked={selectedSeniority.includes(level)}
-                  onChange={() => setSelectedSeniority((prev) => toggle(prev, level))}
+                  onChange={() => toggleSeniority(level)}
                 />
               ))}
             </ChipRow>
@@ -418,7 +565,7 @@ export function EmpleosClient({ skills, defaultSkills, sources }: Props) {
                   key={mode}
                   label={WORK_MODE_LABELS[mode]}
                   checked={selectedModes.includes(mode)}
-                  onChange={() => setSelectedModes((prev) => toggle(prev, mode))}
+                  onChange={() => toggleMode(mode)}
                 />
               ))}
             </ChipRow>
@@ -428,7 +575,7 @@ export function EmpleosClient({ skills, defaultSkills, sources }: Props) {
             <select
               aria-label="Publicado"
               value={days}
-              onChange={(e) => setDays(e.target.value)}
+              onChange={(e) => changeDays(e.target.value)}
               className={selectClass()}
             >
               {DATE_RANGES.map((range) => (
@@ -445,7 +592,7 @@ export function EmpleosClient({ skills, defaultSkills, sources }: Props) {
               aria-label="Ubicación"
               value={location}
               placeholder="Madrid, Barcelona…"
-              onChange={(e) => setLocation(e.target.value)}
+              onChange={(e) => changeLocation(e.target.value)}
               className={inputClass()}
             />
           </FilterGroup>
@@ -458,7 +605,7 @@ export function EmpleosClient({ skills, defaultSkills, sources }: Props) {
                     key={source}
                     label={sourceLabel(source)}
                     checked={selectedSources.includes(source)}
-                    onChange={() => setSelectedSources((prev) => toggle(prev, source))}
+                    onChange={() => toggleSource(source)}
                   />
                 ))}
               </ChipRow>
@@ -495,23 +642,175 @@ function ChipRow({ children }: { children: React.ReactNode }) {
   return <div className="flex flex-wrap gap-1.5">{children}</div>;
 }
 
+/**
+ * Two columns, not three: the sidebar takes 288px out of a 1152px page, so a
+ * third column would leave each card around 265px — narrower than most job
+ * titles need to avoid wrapping to three lines.
+ */
+const GRID_CLASS = "grid gap-3 sm:grid-cols-2";
+
+function ViewToggle({
+  view,
+  onChange,
+}: {
+  view: View;
+  onChange: (view: View) => void;
+}) {
+  const options: { value: View; label: string; icon: string }[] = [
+    { value: "list", label: "Lista", icon: "☰" },
+    { value: "grid", label: "Cuadrícula", icon: "▦" },
+  ];
+
+  return (
+    <div
+      role="radiogroup"
+      aria-label="Vista"
+      className="inline-flex items-center gap-0.5 rounded-full border border-line bg-surface p-0.5"
+    >
+      {options.map((option) => (
+        <button
+          key={option.value}
+          role="radio"
+          aria-checked={view === option.value}
+          title={option.label}
+          onClick={() => onChange(option.value)}
+          className={cx(
+            "grid size-8 place-items-center rounded-full text-sm transition active:scale-95",
+            view === option.value
+              ? "bg-accent text-accent-contrast"
+              : "text-muted hover:bg-chip hover:text-foreground"
+          )}
+        >
+          <span aria-hidden="true">{option.icon}</span>
+          <span className="sr-only">{option.label}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** How many numbered pages flank the current one before the list collapses to
+ * an ellipsis. Seven slots is what fits on a phone without wrapping. */
+const PAGE_WINDOW = 2;
+
+function pageList(page: number, pages: number): (number | "gap")[] {
+  const shown = new Set<number>([1, pages]);
+  for (let i = page - PAGE_WINDOW; i <= page + PAGE_WINDOW; i += 1) {
+    if (i >= 1 && i <= pages) shown.add(i);
+  }
+
+  const sorted = [...shown].sort((a, b) => a - b);
+  const out: (number | "gap")[] = [];
+
+  for (const [i, value] of sorted.entries()) {
+    // A single skipped page is shown rather than replaced by an ellipsis that
+    // would take the same room and say less.
+    if (i > 0 && value - sorted[i - 1] > 1) out.push("gap");
+    out.push(value);
+  }
+
+  return out;
+}
+
+function Pagination({
+  page,
+  pages,
+  onChange,
+}: {
+  page: number;
+  pages: number;
+  onChange: (page: number) => void;
+}) {
+  function go(next: number) {
+    onChange(Math.min(Math.max(next, 1), pages));
+    // Paging without this leaves you at the bottom of the previous page, in
+    // front of the last few results of a list you have already read.
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  return (
+    <nav aria-label="Paginación" className="mt-8 flex flex-wrap items-center justify-center gap-1">
+      <button
+        onClick={() => go(page - 1)}
+        disabled={page === 1}
+        className="min-h-9 rounded-lg px-3 text-sm text-muted transition hover:bg-chip hover:text-foreground disabled:opacity-40 disabled:hover:bg-transparent"
+      >
+        Anterior
+      </button>
+
+      {pageList(page, pages).map((entry, i) =>
+        entry === "gap" ? (
+          <span key={`gap-${i}`} aria-hidden="true" className="px-1 text-sm text-muted">
+            …
+          </span>
+        ) : (
+          <button
+            key={entry}
+            onClick={() => go(entry)}
+            aria-current={entry === page ? "page" : undefined}
+            className={cx(
+              "min-h-9 min-w-9 rounded-lg px-2 text-sm transition active:scale-95",
+              entry === page
+                ? "bg-accent font-medium text-accent-contrast"
+                : "text-muted hover:bg-chip hover:text-foreground"
+            )}
+          >
+            {entry}
+          </button>
+        )
+      )}
+
+      <button
+        onClick={() => go(page + 1)}
+        disabled={page === pages}
+        className="min-h-9 rounded-lg px-3 text-sm text-muted transition hover:bg-chip hover:text-foreground disabled:opacity-40 disabled:hover:bg-transparent"
+      >
+        Siguiente
+      </button>
+    </nav>
+  );
+}
+
 /** Cards past this one appear together. Staggering the whole list would mean
  * the last of sixty arrives two seconds late, and nobody should wait on an
  * animation to read a result that is already loaded. */
 const STAGGER_LIMIT = 8;
 const STAGGER_STEP_MS = 35;
 
-function JobCard({ job, index }: { job: Job; index: number }) {
+function JobCard({
+  job,
+  index,
+  view,
+}: {
+  job: Job;
+  index: number;
+  view: View;
+}) {
   const age = relativeDate(job.postedAt);
+  const grid = view === "grid";
 
   return (
     <li
       style={{
         animationDelay: `${Math.min(index, STAGGER_LIMIT) * STAGGER_STEP_MS}ms`,
       }}
-      className="motion-rise rounded-2xl border border-line bg-surface p-5 transition hover:-translate-y-0.5 hover:border-line-strong hover:shadow-md"
+      className={cx(
+        "motion-rise rounded-2xl border border-line bg-surface transition hover:-translate-y-0.5 hover:border-line-strong hover:shadow-md",
+        // Grid cards stretch to the tallest in their row, so the badges are
+        // pinned to the bottom with mt-auto and the column has to be a flex
+        // one for that to mean anything.
+        grid ? "flex flex-col p-4" : "p-5"
+      )}
     >
-      <h3 className="text-base font-medium leading-snug">
+      <h3
+        className={cx(
+          "text-base font-medium leading-snug",
+          // Two lines in a 400px column is roughly 70 characters, which most
+          // titles fit; the rest are readable enough truncated, and a card that
+          // grows to five lines wrecks the row it sits in.
+          grid && "line-clamp-2"
+        )}
+      >
         <a
           href={job.url}
           target="_blank"
@@ -527,7 +826,7 @@ function JobCard({ job, index }: { job: Job; index: number }) {
       </h3>
 
       {(job.company || job.location) && (
-        <p className="mt-1 text-sm text-muted">
+        <p className={cx("mt-1 text-sm text-muted", grid && "line-clamp-1")}>
           {job.company}
           {job.company && job.location && " · "}
           {job.location}
@@ -536,14 +835,14 @@ function JobCard({ job, index }: { job: Job; index: number }) {
 
       {/* Metadata as separate badges rather than one dot-separated sentence:
           five values joined by "·" read as prose and scan as noise. */}
-      <div className="mt-3 flex flex-wrap items-center gap-1.5">
+      <div className={cx("flex flex-wrap items-center gap-1.5", grid ? "mt-auto pt-3" : "mt-3")}>
         {job.seniority && <Badge tone="accent">{SENIORITY_LABELS[job.seniority]}</Badge>}
         {job.workMode && <Badge>{WORK_MODE_LABELS[job.workMode]}</Badge>}
         {age && <Badge>{age}</Badge>}
         <Badge>{sourceLabel(job.source)}</Badge>
       </div>
 
-      {job.matchedSkills && job.matchedSkills.length > 0 && (
+      {!grid && job.matchedSkills && job.matchedSkills.length > 0 && (
         <div className="mt-4 flex flex-wrap items-center gap-1.5 border-t border-line pt-3">
           <span className="mr-0.5 text-xs text-muted">Encaja por</span>
           {job.matchedSkills.map((skill) => (
