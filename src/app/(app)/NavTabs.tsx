@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { cx } from "@/components/ui";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { Logo } from "@/components/Logo";
 
 const TABS = [
   { href: "/empleos", label: "Empleos" },
@@ -24,13 +25,8 @@ export function NavTabs() {
           href="/empleos"
           className="hidden shrink-0 items-center gap-2 py-4 sm:flex"
         >
-          <span
-            aria-hidden="true"
-            className="grid size-6 place-items-center rounded-sm bg-tinta text-xs font-bold text-papel"
-          >
-            J
-          </span>
-          <span className="text-sm font-semibold tracking-tight">Job Matcher</span>
+          <Logo className="size-6" />
+          <span className="display text-sm leading-none">JobMatch</span>
         </Link>
 
         <nav className="flex flex-1 gap-1">

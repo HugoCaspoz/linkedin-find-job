@@ -26,7 +26,7 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Job Matcher",
+  title: "JobMatch",
   description:
     "Sube tu CV y encuentra ofertas de empleo que encajan con tus skills.",
 };

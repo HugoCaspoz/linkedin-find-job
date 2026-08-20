@@ -13,7 +13,7 @@ export default function GlobalError({
   return (
     <html lang="es" className="h-full antialiased">
       <body className="flex min-h-full flex-col">
-        <title>Error — Job Matcher</title>
+        <title>Error — JobMatch</title>
         <div className="mx-auto w-full max-w-3xl flex-1 px-6 py-20">
           <h1 className="mb-2 text-2xl font-semibold">Algo ha fallado</h1>
           <p className="mb-6 text-sm text-tinta-2">
