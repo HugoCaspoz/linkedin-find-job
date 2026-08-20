@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!--
+    The fit gauge, same geometry as src/components/Logo.tsx.
+
+    Duplicated on purpose: a favicon is fetched by the browser as a standalone
+    document, so it cannot reach the page's custom properties and the palette
+    has to be inlined. The media query is what keeps the plate from vanishing
+    against a dark browser chrome.
+  -->
+  <style>
+    :root { --plate: #1f5d62; --mark: #ecede7; }
+    @media (prefers-color-scheme: dark) {
+      :root { --plate: #6fd3d0; --mark: #0f1418; }
+    }
+  </style>
+  <rect width="32" height="32" rx="6" fill="var(--plate)"/>
+  <g fill="var(--mark)">
+    <rect x="4.25" y="8" width="4" height="16"/>
+    <rect x="10.75" y="8" width="4" height="16"/>
+    <rect x="17.25" y="16" width="4" height="8"/>
+    <rect x="23.75" y="8" width="4" height="16" opacity="0.35"/>
+  </g>
+</svg>

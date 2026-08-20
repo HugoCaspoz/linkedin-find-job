@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { Brand } from "@/components/Logo";
 
 /**
  * Shell for the signed-out pages: landing, login and register. It exists
@@ -14,14 +15,8 @@ export default function PublicLayout({
   return (
     <>
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-4">
-        <Link href="/" className="flex items-center gap-2">
-          <span
-            aria-hidden="true"
-            className="grid size-6 place-items-center rounded-sm bg-tinta text-xs font-bold text-papel"
-          >
-            J
-          </span>
-          <span className="text-sm font-semibold tracking-tight">Job Matcher</span>
+        <Link href="/" aria-label="JobMatch, inicio">
+          <Brand />
         </Link>
 
         <ThemeToggle />

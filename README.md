@@ -1,4 +1,4 @@
-## Job Matcher
+## JobMatch
 
 Sube tu CV (PDF) o pega tu LinkedIn, Claude extrae tus skills/años de experiencia, y busca ofertas en Adzuna (API) + LinkedIn/InfoJobs/Tecnoempleo (scraping).
 

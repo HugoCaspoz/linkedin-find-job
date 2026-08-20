@@ -14,46 +14,63 @@ import { FitGauge, buttonClass, cx } from "@/components/ui";
  * component the signed-in page renders.
  */
 
-/** The skills the specimen is measured against — a plausible backend list. */
-const SPECIMEN_SKILLS = ["PHP", "Laravel", "Docker", "Go", "Rust"];
+/**
+ * The skills the specimen is measured against.
+ *
+ * Chosen for recognition, not for realism about any one profile: a reader who
+ * does not know what Rust or Actix Web are cannot tell whether the gauge is
+ * saying something useful. These five are also close to the worker's
+ * DEFAULT_QUERIES (src/lib/scrapeWorker.ts), so the sample shows roughly what
+ * a brand-new account actually finds indexed.
+ */
+const SPECIMEN_SKILLS = ["JavaScript", "React", "PHP", "Python", "SQL"];
 
 /**
  * Example rows, not listings. No company names and no links: this is a drawing
  * of the interface, and dressing it up as real postings would be a lie told for
  * decoration.
+ *
+ * Ordered by the same rule the real sheet uses — a title hit scores three, a
+ * description hit one — so the specimen obeys its own sort. Getting that wrong
+ * is the sort of detail an attentive reader catches and stops trusting.
  */
 const SPECIMEN = [
   {
-    title: "Senior PHP Developer (Laravel)",
-    matched: ["PHP", "Laravel", "Docker"],
-    inTitle: ["PHP", "Laravel"],
+    // JavaScript + React in the title, SQL in the body: 3 + 3 + 1 = 7
+    title: "Full Stack JavaScript — React y Node",
+    matched: ["JavaScript", "React", "SQL"],
+    inTitle: ["JavaScript", "React"],
     level: "senior",
     mode: "Remoto",
     age: "hace 2 días",
   },
   {
-    title: "Backend Engineer — Go, Kubernetes",
-    matched: ["Go", "Docker"],
-    inTitle: ["Go"],
+    // Python + SQL in the title: 3 + 3 = 6
+    title: "Data Engineer — Python y SQL",
+    matched: ["Python", "SQL"],
+    inTitle: ["Python", "SQL"],
     level: "—",
     mode: "Híbrido",
+    age: "hoy",
+  },
+  {
+    // PHP in the title, JavaScript and SQL in the body: 3 + 1 + 1 = 5
+    title: "Desarrollador/a PHP con Symfony",
+    matched: ["PHP", "JavaScript", "SQL"],
+    inTitle: ["PHP"],
+    level: "junior",
+    mode: "Presencial",
     age: "ayer",
   },
   {
-    title: "Programador/a PHP con Symfony",
-    matched: ["PHP", "Docker"],
-    inTitle: ["PHP"],
+    // Nothing in the title, SQL in the body: 1. A weak fit belongs in the
+    // sample — a gauge that only ever shows near-full segments proves nothing.
+    title: "Analista programador/a Java",
+    matched: ["SQL"],
+    inTitle: [],
     level: "—",
     mode: "Presencial",
     age: "hace 4 días",
-  },
-  {
-    title: "Rust Systems Engineer",
-    matched: ["Rust"],
-    inTitle: ["Rust"],
-    level: "senior",
-    mode: "Remoto",
-    age: "hoy",
   },
 ];
 
