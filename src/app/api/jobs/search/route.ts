@@ -3,8 +3,9 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { searchAdzuna } from "@/lib/jobSources/adzuna";
 import {
+  DEFAULT_PER_PAGE,
   MAX_AGE_DAYS,
-  MAX_LIMIT,
+  MAX_PER_PAGE,
   UNSPECIFIED,
   indexState,
   searchStoredJobs,
@@ -103,16 +104,28 @@ export async function GET(req: Request) {
   const location = searchParams.get("location")?.trim() || undefined;
   const sort: SortOrder = searchParams.get("sort") === "date" ? "date" : "relevance";
 
-  const limitRaw = Number(searchParams.get("limit"));
-  const pageLimit =
-    Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(limitRaw, MAX_LIMIT) : undefined;
+  const perPageRaw = Number(searchParams.get("perPage"));
+  const perPage =
+    Number.isFinite(perPageRaw) && perPageRaw > 0
+      ? Math.min(perPageRaw, MAX_PER_PAGE)
+      : DEFAULT_PER_PAGE;
+
+  const pageRaw = Number(searchParams.get("page"));
+  const page = Number.isFinite(pageRaw) && pageRaw > 0 ? Math.floor(pageRaw) : 1;
 
   // Skipping the live call entirely when Adzuna is filtered out is not just an
   // optimization: it's the difference between a 200ms search and one that
   // waits on somebody else's API for nothing.
-  const wantsAdzuna = sources.length === 0 || sources.includes(ADZUNA_SOURCE);
+  //
+  // It is also skipped past the first page. Adzuna is a live API with no
+  // cursor of its own, so it cannot be paged in step with the indexed rows;
+  // re-fetching the same twenty results on every page and slicing them in JS
+  // would put duplicates on page two. Confining them to page one keeps the
+  // paging honest, at the cost of a seam that the response makes explicit.
+  const wantsAdzuna =
+    (sources.length === 0 || sources.includes(ADZUNA_SOURCE)) && page === 1;
 
-  const [adzunaJobs, storedJobs] = await Promise.all([
+  const [adzunaJobs, stored] = await Promise.all([
     // Adzuna treats the query as one string, and its own relevance ranking
     // handles the combination better than an AND of five terms would.
     wantsAdzuna ? searchAdzuna(skills.slice(0, 3).join(" "), modes) : Promise.resolve([]),
@@ -124,9 +137,12 @@ export async function GET(req: Request) {
       postedWithinDays,
       location,
       sort,
-      limit: pageLimit,
+      page,
+      perPage,
     }),
   ]);
+
+  const storedJobs = stored.jobs;
 
   // Adzuna arrives unranked and unfiltered — it has no seniority field and no
   // date-range parameter we use — so the same rules are applied here in JS.
@@ -153,13 +169,24 @@ export async function GET(req: Request) {
 
   // Adzuna results aren't persisted here: they're already a supported API, so
   // there's no reason to keep a local copy just to re-serve it.
+  // `total` counts the indexed matches for the whole filter; the Adzuna
+  // results only exist on page one, so they are added there and nowhere else.
+  const total = stored.total + scoredAdzuna.length;
+
   const response: Record<string, unknown> = {
     query: skills.join(", "),
     count: jobs.length,
+    total,
+    page,
+    perPage,
+    pages: Math.max(1, Math.ceil(stored.total / perPage)),
     jobs,
   };
 
-  if (storedJobs.length === 0) {
+  // Keyed on the total rather than on this page being empty: page five of a
+  // result set that has four pages is empty too, and telling that user the
+  // index has never been populated would be plainly false.
+  if (stored.total === 0) {
     const state = await indexState();
     if (state === "empty") {
       response.notice =

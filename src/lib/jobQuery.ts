@@ -6,10 +6,14 @@ import type { NormalizedJob, WorkMode } from "@/lib/jobSources/types";
 
 /** Listings older than this are treated as stale even if not pruned yet. */
 export const MAX_AGE_DAYS = 14;
-const DEFAULT_LIMIT = 60;
-/** Ceiling for the caller-supplied limit, so a crafted query can't ask for the
- * whole table. */
-export const MAX_LIMIT = 200;
+
+/** Page sizes the UI offers. Multiples of 12 so a two- or three-column grid
+ * never ends on a ragged half-row. */
+export const PAGE_SIZES = [12, 24, 48, 96] as const;
+export const DEFAULT_PER_PAGE = 24;
+/** Ceiling for the caller-supplied page size, so a crafted query can't ask for
+ * the whole table in one request. */
+export const MAX_PER_PAGE = 96;
 
 /**
  * Listings whose title never stated a level. Kept as a selectable bucket
@@ -35,13 +39,22 @@ export interface JobFilters {
   /** Substring match on the listing's location. */
   location?: string;
   sort?: SortOrder;
-  limit?: number;
+  /** 1-based. Out-of-range pages return no rows but still report the total, so
+   * the caller can render controls that get the user back. */
+  page?: number;
+  perPage?: number;
 }
 
 export interface ScoredJob extends NormalizedJob {
   score: number;
   matchedSkills: string[];
   seniority?: Seniority;
+}
+
+export interface StoredJobPage {
+  jobs: ScoredJob[];
+  /** Matches for the whole filter, not just this page. */
+  total: number;
 }
 
 interface Row {
@@ -57,6 +70,7 @@ interface Row {
   postedAt: Date | null;
   score: number;
   matchedSkills: string[];
+  total: number;
 }
 
 /**
@@ -74,13 +88,15 @@ interface Row {
  * trigram GIN indexes on title and description can serve — pg_trgm
  * accelerates `~*`, not only LIKE.
  */
-export async function searchStoredJobs(filters: JobFilters): Promise<ScoredJob[]> {
+export async function searchStoredJobs(filters: JobFilters): Promise<StoredJobPage> {
   const usable = filters.skills.filter((s) => s.trim());
-  if (usable.length === 0) return [];
+  if (usable.length === 0) return { jobs: [], total: 0 };
 
   const patterns = usable.map(postgresPattern);
   const cutoff = new Date(Date.now() - MAX_AGE_DAYS * 24 * 60 * 60 * 1000);
-  const limit = Math.min(filters.limit ?? DEFAULT_LIMIT, MAX_LIMIT);
+  const perPage = Math.min(Math.max(filters.perPage ?? DEFAULT_PER_PAGE, 1), MAX_PER_PAGE);
+  const page = Math.max(filters.page ?? 1, 1);
+  const offset = (page - 1) * perPage;
 
   // Weights are module constants, not input, so they go in as literals: as
   // bound parameters Postgres has to infer their type inside the CASE.
@@ -179,21 +195,31 @@ export async function searchStoredJobs(filters: JobFilters): Promise<ScoredJob[]
     ? Prisma.sql`AND j."location" ILIKE ${`%${location}%`}`
     : Prisma.empty;
 
-  // Relevance still breaks ties by date, and date still breaks ties by
-  // relevance — otherwise two listings with the same score (or the same day)
-  // come back in whatever order the scan produced, and the list reshuffles
-  // between identical searches.
+  // Relevance breaks ties by date and date breaks ties by relevance, and both
+  // end on the primary key.
+  //
+  // That last term is what makes paging correct, not just tidy. Scores repeat
+  // heavily and `postedAt` is null on most rows, so without a unique final key
+  // the sort is only a partial order: Postgres may return tied rows in a
+  // different sequence for each query, and two OFFSET pages of the same search
+  // then overlap on some listings and skip others entirely.
   const orderBy =
     filters.sort === "date"
-      ? Prisma.sql`ORDER BY COALESCE(j."postedAt", j."fetchedAt") DESC, "score" DESC`
-      : Prisma.sql`ORDER BY "score" DESC, j."postedAt" DESC NULLS LAST, j."fetchedAt" DESC`;
+      ? Prisma.sql`ORDER BY COALESCE(j."postedAt", j."fetchedAt") DESC, "score" DESC, j."id" ASC`
+      : Prisma.sql`ORDER BY "score" DESC, j."postedAt" DESC NULLS LAST, j."fetchedAt" DESC, j."id" ASC`;
 
   const rows = await prisma.$queryRaw<Row[]>`
     SELECT
       j."source", j."externalId", j."title", j."company", j."location",
       j."url", j."description", j."workMode", j."seniority", j."postedAt",
       (${scoreSql})::int AS "score",
-      ARRAY_REMOVE(ARRAY[${matchedNamesSql}]::text[], NULL) AS "matchedSkills"
+      ARRAY_REMOVE(ARRAY[${matchedNamesSql}]::text[], NULL) AS "matchedSkills",
+      -- Window functions run after WHERE but before LIMIT, so this is the size
+      -- of the whole filtered set, not of the page. It costs materialising that
+      -- set — which the ORDER BY already required anyway — and saves a second
+      -- round trip whose WHERE clause would have to be kept in sync with this
+      -- one by hand.
+      COUNT(*) OVER()::int AS "total"
     FROM "JobListing" j
     WHERE j."fetchedAt" >= ${cutoff}
       ${modeFilter}
@@ -203,10 +229,10 @@ export async function searchStoredJobs(filters: JobFilters): Promise<ScoredJob[]
       ${locationFilter}
       AND (${matchesSql})
     ${orderBy}
-    LIMIT ${limit}
+    LIMIT ${perPage} OFFSET ${offset}
   `;
 
-  return rows.map((r) => ({
+  const jobs = rows.map((r) => ({
     source: r.source,
     externalId: r.externalId,
     title: r.title,
@@ -220,6 +246,20 @@ export async function searchStoredJobs(filters: JobFilters): Promise<ScoredJob[]
     score: r.score,
     matchedSkills: r.matchedSkills,
   }));
+
+  // An empty page past the end still has to report the real total, or the
+  // caller cannot draw the controls that get the user back to a page that
+  // exists.
+  const total = rows[0]?.total ?? (offset > 0 ? await countStoredJobs(filters) : 0);
+
+  return { jobs, total };
+}
+
+/** Only reached when a page lands past the end of the result set, where the
+ * window function has no row to report the count on. */
+async function countStoredJobs(filters: JobFilters): Promise<number> {
+  const { total } = await searchStoredJobs({ ...filters, page: 1, perPage: 1 });
+  return total;
 }
 
 /**
