@@ -1,141 +1,143 @@
 @import "tailwindcss";
 
 /**
- * Semantic tokens rather than raw palette classes. The dark variants used to
- * be spelled out at every call site (`text-zinc-600 dark:text-zinc-400`), which
- * is how half of them ended up missing their dark half and failing contrast.
- * One name, defined once per appearance, can't drift.
+ * Two inks on paper.
  *
- * Every ratio below is measured against the surface the colour is actually
- * used on, so a change here can be re-checked without hunting call sites.
+ * The palette is borrowed from two-ink printing on engineering paper, because
+ * what this app asks you to do is compare a parameter set across many
+ * listings — the same job a component datasheet does. Paper, one text ink, and
+ * a spot ink held back for measured values.
  *
- * Appearance is keyed on `data-theme`, never on `prefers-color-scheme`
- * directly. The inline script in the root layout resolves the user's stored
- * choice — or the OS, when they haven't made one — into a concrete
- * `light`/`dark` value before the first paint, so this file needs exactly two
- * palettes and no third "system" branch to keep in sync with the other two.
+ * The discipline is the rule, not the hues: `--medida` never touches chrome.
+ * No buttons, no tabs, no navigation. It appears where the machine has
+ * measured something, and on the element it is currently acting on. Spend it
+ * anywhere else and this reads as "a site with a purple accent" rather than a
+ * datasheet.
+ *
+ * Not blue, deliberately. InfoJobs, LinkedIn and Tecnoempleo are all blue, and
+ * this tool aggregates those three — looking like them is the one thing it
+ * cannot afford to do.
+ *
+ * Appearance is keyed on `data-theme`, resolved before first paint by the
+ * inline script in the root layout, so there are exactly two palettes and no
+ * third "system" branch to keep in sync.
  */
 :root,
 :root[data-theme="light"] {
-  /* Page sits slightly below the cards so a surface reads as raised without
-     needing a heavy border. */
-  --canvas: #fafafa;
-  --surface: #ffffff;
-  --foreground: #171717;
-  --muted: #52525b; /* 7.4:1 on --canvas */
-  --line: rgb(0 0 0 / 0.10);
-  --line-strong: rgb(0 0 0 / 0.45); /* 3.4:1 — form fields lean on this */
+  /* Engineering paper: cool and faintly green, not the warm cream that every
+     generated design reaches for. */
+  --papel: #ecefea;
+  /* Ruling and the filled label cells. A datasheet separates fields with tinted
+     blocks, not hairlines — that is what keeps this off the broadsheet look. */
+  --pauta: #cfd5cb;
+  --pauta-fuerte: #a8b1a6;
+  --tinta: #14181a; /* 15.4:1 on --papel */
+  --tinta-2: #4f5960; /* 5.3:1 on --papel */
 
-  --accent: #2563eb; /* 5.2:1 on --surface */
-  /* Text laid *on* --accent, for selected chips and filled buttons. Separate
-     token because it inverts between appearances: white on blue in light,
-     near-black on the lighter blue in dark. */
-  --accent-contrast: #ffffff;
-  /* Tint for a selected-but-not-filled state. Kept as an alpha of the accent
-     so it composites correctly over both --canvas and --surface. */
-  --accent-soft: rgb(37 99 235 / 0.10);
+  /* Ultramarine printing ink. Measured values and the fit gauge only. */
+  --medida: #3a2fc7; /* 8.1:1 on --papel */
+  --medida-suave: rgb(58 47 199 / 0.10);
 
-  /* Neutral fill for non-interactive chips (matched skills, metadata). */
-  --chip: rgb(0 0 0 / 0.05);
+  /* The single warning ink, as on a printed sheet. */
+  --aviso: #b03a0b; /* 5.6:1 on --papel */
+  --aviso-suave: rgb(176 58 11 / 0.09);
+  --ok: #256a3a; /* 5.2:1 on --papel */
 
-  /* Status colours. Previously written inline as `text-red-700
-     dark:text-red-400` in five files, which is how one of them ended up
-     without its dark half. */
-  --danger: #b91c1c; /* 5.9:1 on --surface */
-  /* Text laid *on* --danger. Inverts between appearances like
-     --accent-contrast: white reads at 6.7:1 on the dark red here, but only
-     2.5:1 on the light red the dark theme uses. */
-  --danger-contrast: #ffffff;
-  --danger-soft: rgb(185 28 28 / 0.08);
-  --warning: #b45309; /* 4.8:1 on --surface */
-  --warning-soft: rgb(180 83 9 / 0.10);
-  --success: #15803d; /* 5.0:1 on --surface */
-
-  /* Native controls — checkboxes, selects, scrollbars, the form autofill
-     background — follow this property, not our custom variables. Without it
-     they keep light-mode chrome on the dark page, so a checked box stayed
-     white on near-black. */
   color-scheme: light;
 }
 
+/* The negative: the same sheet photographed, not a separate "dark theme". */
 :root[data-theme="dark"] {
-  --canvas: #0a0a0a;
-  --surface: #161616;
-  --foreground: #ededed;
-  --muted: #a1a1aa; /* 7.0:1 on --surface */
-  --line: rgb(255 255 255 / 0.12);
-  --line-strong: rgb(255 255 255 / 0.40);
+  --papel: #101413;
+  --pauta: #242a28;
+  --pauta-fuerte: #3d4541;
+  --tinta: #e7ebe4; /* 14.6:1 on --papel */
+  --tinta-2: #98a29b; /* 7.4:1 on --papel */
 
-  --accent: #60a5fa; /* 7.0:1 on --surface */
-  --accent-contrast: #0a0a0a; /* 9.8:1 on --accent */
-  --accent-soft: rgb(96 165 250 / 0.16);
+  --medida: #9a8cff; /* 7.9:1 on --papel */
+  --medida-suave: rgb(154 140 255 / 0.16);
 
-  --chip: rgb(255 255 255 / 0.08);
-
-  --danger: #f87171; /* 6.1:1 on --surface */
-  --danger-contrast: #0a0a0a; /* 8.4:1 on --danger */
-  --danger-soft: rgb(248 113 113 / 0.14);
-  --warning: #fbbf24; /* 9.6:1 on --surface */
-  --warning-soft: rgb(251 191 36 / 0.14);
-  --success: #4ade80; /* 9.5:1 on --surface */
+  --aviso: #f2794a; /* 8.0:1 on --papel */
+  --aviso-suave: rgb(242 121 74 / 0.14);
+  --ok: #5fc98a; /* 9.6:1 on --papel */
 
   color-scheme: dark;
 }
 
 @theme inline {
-  --color-canvas: var(--canvas);
-  --color-surface: var(--surface);
-  --color-foreground: var(--foreground);
-  --color-muted: var(--muted);
-  --color-line: var(--line);
-  --color-line-strong: var(--line-strong);
+  --color-papel: var(--papel);
+  --color-pauta: var(--pauta);
+  --color-pauta-fuerte: var(--pauta-fuerte);
+  --color-tinta: var(--tinta);
+  --color-tinta-2: var(--tinta-2);
 
-  --color-accent: var(--accent);
-  --color-accent-contrast: var(--accent-contrast);
-  --color-accent-soft: var(--accent-soft);
+  --color-medida: var(--medida);
+  --color-medida-suave: var(--medida-suave);
 
-  --color-chip: var(--chip);
-
-  --color-danger: var(--danger);
-  --color-danger-contrast: var(--danger-contrast);
-  --color-danger-soft: var(--danger-soft);
-  --color-warning: var(--warning);
-  --color-warning-soft: var(--warning-soft);
-  --color-success: var(--success);
+  --color-aviso: var(--aviso);
+  --color-aviso-suave: var(--aviso-suave);
+  --color-ok: var(--ok);
 
   /* Fallback chain matters: global-error.tsx replaces the root layout, so the
      next/font variable is undefined there and an unguarded var() would drop
      the whole declaration and render that page in the browser serif. */
-  --font-sans: var(--font-geist-sans, ui-sans-serif, system-ui, sans-serif);
-  --font-mono: var(--font-geist-mono, ui-monospace, monospace);
+  --font-sans: var(--font-archivo, ui-sans-serif, system-ui, sans-serif);
+  --font-mono: var(--font-plex-mono, ui-monospace, monospace);
 }
 
-/* No font-family here: Tailwind's preflight already resolves it through
-   --font-sans, which points at Geist. Setting Arial on the body overrode that
-   and rendered Arial while still paying to download Geist. */
 body {
-  background: var(--canvas);
-  color: var(--foreground);
+  background: var(--papel);
+  color: var(--tinta);
 }
 
-/* Nothing in the app defined a focus style, and the UA default ring is
-   invisible against the filled buttons. */
+/**
+ * Type has one rule: if it is a measured value, a label or a unit, it is set in
+ * the mono; if it is prose, it is set in Archivo. Following that consistently is
+ * what makes the page read as a sheet rather than as a website with a
+ * monospace accent.
+ */
+.display {
+  font-family: var(--font-sans);
+  /* Archivo carries a width axis. Widening the display face and leaving the
+     body at normal width gives two voices out of one family — more coherent,
+     and one fewer font to download, than pairing two unrelated faces. */
+  font-variation-settings: "wdth" 112;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+}
+
+/** Field labels on the sheet: small, spaced, quiet, never bold. */
+.rotulo {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  line-height: 1.2;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--tinta-2);
+}
+
+/** A measured value. Tabular figures so a column of them lines up. */
+.valor {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* Focus is the one place the spot ink is allowed outside a measurement: it
+   marks what the interface is acting on, and legibility outranks the rule. */
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--medida);
   outline-offset: 2px;
 }
 
 /**
  * Motion.
  *
- * Every animation here reports something: that results arrived, that a search
- * is running, that a press registered. Nothing moves for decoration — an app
- * you check while job-hunting is one you use dozens of times a day, and
- * animating a frequent interaction just makes people wait for it.
+ * Every animation reports something: that results arrived, that a search is
+ * running, that a press registered. Nothing moves for decoration — this is an
+ * app you check dozens of times a day, and animating a frequent interaction
+ * just makes people wait for it.
  */
-
-/* Results settling in after a search. Short travel, quick out-curve: it should
-   read as "these are new" and be over before it draws attention to itself. */
 @keyframes rise-in {
   from {
     opacity: 0;
@@ -191,8 +193,6 @@ body {
   *,
   *::before,
   *::after {
-    /* Kills the skeleton pulse and the progress sweep without touching
-       one-shot animations. */
     animation-iteration-count: 1 !important;
     transition-property: opacity, color, background-color, border-color,
       outline-color !important;

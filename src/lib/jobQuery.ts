@@ -48,6 +48,13 @@ export interface JobFilters {
 export interface ScoredJob extends NormalizedJob {
   score: number;
   matchedSkills: string[];
+  /**
+   * The subset of `matchedSkills` that appear in the *title*. Returned
+   * separately rather than derived on the client because it is the difference
+   * the scoring already makes — a title hit is worth three times a description
+   * hit — and the fit gauge shows that split rather than a flat count.
+   */
+  titleSkills: string[];
   seniority?: Seniority;
 }
 
@@ -70,6 +77,7 @@ interface Row {
   postedAt: Date | null;
   score: number;
   matchedSkills: string[];
+  titleSkills: string[];
   total: number;
 }
 
@@ -145,6 +153,17 @@ export async function searchStoredJobs(filters: JobFilters): Promise<StoredJobPa
     ", "
   );
 
+  // Same shape, title only. Costs no extra index work: the planner already
+  // evaluated this exact predicate for the score column.
+  const titleNamesSql = Prisma.join(
+    patterns.map(
+      (pattern, i) => Prisma.sql`CASE
+        WHEN j."title" ~* ${pattern} THEN ${usable[i]}
+      END`
+    ),
+    ", "
+  );
+
   // A listing with no stated modality passes any filter — most sources do not
   // report it, and dropping those would throw away most of the index.
   const modes = filters.modes ?? [];
@@ -214,6 +233,7 @@ export async function searchStoredJobs(filters: JobFilters): Promise<StoredJobPa
       j."url", j."description", j."workMode", j."seniority", j."postedAt",
       (${scoreSql})::int AS "score",
       ARRAY_REMOVE(ARRAY[${matchedNamesSql}]::text[], NULL) AS "matchedSkills",
+      ARRAY_REMOVE(ARRAY[${titleNamesSql}]::text[], NULL) AS "titleSkills",
       -- Window functions run after WHERE but before LIMIT, so this is the size
       -- of the whole filtered set, not of the page. It costs materialising that
       -- set — which the ORDER BY already required anyway — and saves a second
@@ -245,6 +265,7 @@ export async function searchStoredJobs(filters: JobFilters): Promise<StoredJobPa
     postedAt: r.postedAt?.toISOString(),
     score: r.score,
     matchedSkills: r.matchedSkills,
+    titleSkills: r.titleSkills,
   }));
 
   // An empty page past the end still has to report the real total, or the

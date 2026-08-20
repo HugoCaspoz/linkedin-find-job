@@ -16,7 +16,7 @@ export function NavTabs() {
   const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-10 border-b border-line bg-canvas/85 backdrop-blur">
+    <header className="sticky top-0 z-10 border-b border-pauta bg-papel/85 backdrop-blur">
       <div className="mx-auto flex w-full max-w-6xl items-center gap-4 px-6 sm:gap-8">
         {/* Hidden on phones: brand + three tabs + sign-out overflow 390px, and
             the brand is the one piece every page repeats in its own heading. */}
@@ -26,7 +26,7 @@ export function NavTabs() {
         >
           <span
             aria-hidden="true"
-            className="grid size-6 place-items-center rounded-md bg-accent text-xs font-bold text-accent-contrast"
+            className="grid size-6 place-items-center rounded-sm bg-tinta text-xs font-bold text-papel"
           >
             J
           </span>
@@ -47,8 +47,8 @@ export function NavTabs() {
                 className={cx(
                   "-mb-px border-b-2 px-3 py-4 text-sm transition-colors",
                   active
-                    ? "border-accent font-medium text-foreground"
-                    : "border-transparent text-muted hover:text-foreground"
+                    ? "border-tinta font-medium text-tinta"
+                    : "border-transparent text-tinta-2 hover:text-tinta"
                 )}
               >
                 {tab.label}
@@ -64,7 +64,7 @@ export function NavTabs() {
               under the 44px touch target the tabs beside it already meet. */}
           <button
             onClick={() => signOut({ callbackUrl: "/" })}
-            className="py-4 text-sm text-muted transition-colors hover:text-foreground"
+            className="py-4 text-sm text-tinta-2 transition-colors hover:text-tinta"
           >
             Salir
           </button>

@@ -48,7 +48,7 @@ export default function LoginPage() {
     <div className="flex flex-1 items-center justify-center px-6 py-10">
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-sm space-y-5 rounded-2xl border border-line bg-surface p-8 shadow-sm"
+        className="w-full max-w-sm space-y-5 rounded-sm border border-pauta bg-papel p-8"
       >
         <h1 className="text-2xl font-semibold tracking-tight">Iniciar sesión</h1>
 
@@ -67,7 +67,7 @@ export default function LoginPage() {
             placeholder="tu@email.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full min-h-11 rounded-lg border border-line-strong bg-transparent px-3 text-sm placeholder:text-muted"
+            className="w-full min-h-11 rounded-sm border border-pauta-fuerte bg-transparent px-3 text-sm placeholder:text-tinta-2"
           />
         </div>
 
@@ -82,12 +82,12 @@ export default function LoginPage() {
             autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full min-h-11 rounded-lg border border-line-strong bg-transparent px-3 text-sm placeholder:text-muted"
+            className="w-full min-h-11 rounded-sm border border-pauta-fuerte bg-transparent px-3 text-sm placeholder:text-tinta-2"
           />
         </div>
 
         {error && (
-          <p role="alert" className="text-sm text-danger">
+          <p role="alert" className="text-sm text-aviso">
             {error}
           </p>
         )}
@@ -95,14 +95,14 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full min-h-11 rounded-lg bg-accent text-sm font-medium text-accent-contrast transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full min-h-11 rounded-sm bg-tinta text-sm font-medium text-papel transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {loading ? "Entrando..." : "Entrar"}
         </button>
 
-        <p className="text-sm text-muted">
+        <p className="text-sm text-tinta-2">
           ¿No tienes cuenta?{" "}
-          <Link href="/register" className="text-accent underline">
+          <Link href="/register" className="text-tinta underline">
             Regístrate
           </Link>
         </p>

@@ -54,6 +54,9 @@ export interface Job {
   postedAt?: string;
   score?: number;
   matchedSkills?: string[];
+  /** Subset of matchedSkills found in the title, which the scoring weights at
+   * three times a description hit. The fit gauge shows that split. */
+  titleSkills?: string[];
 }
 
 /** A 500 can come back as an HTML error page rather than JSON. */

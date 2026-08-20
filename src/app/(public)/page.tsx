@@ -31,7 +31,7 @@ export default async function Home() {
         <h1 className="text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
           Ofertas que encajan con tu perfil técnico
         </h1>
-        <p className="mx-auto mt-5 max-w-lg text-lg text-muted text-balance">
+        <p className="mx-auto mt-5 max-w-lg text-lg text-tinta-2 text-balance">
           Sin escribir la búsqueda. Tus skills salen del CV, y las ofertas se
           ordenan por cuántas de ellas cumplen.
         </p>
@@ -51,18 +51,18 @@ export default async function Home() {
           <li
             key={step.title}
             style={{ animationDelay: `${120 + i * 70}ms` }}
-            className="motion-rise rounded-2xl border border-line bg-surface p-6 text-left shadow-sm"
+            className="motion-rise rounded-sm border border-pauta bg-papel p-6 text-left"
           >
             <span
               // Decorative: the ordinal is already conveyed by the <ol>, so
               // repeating it to a screen reader is noise.
               aria-hidden="true"
-              className="grid size-7 place-items-center rounded-full bg-accent-soft text-sm font-medium text-accent"
+              className="grid size-7 place-items-center rounded-full bg-medida-suave text-sm font-medium text-tinta"
             >
               {i + 1}
             </span>
             <h2 className="mt-4 font-medium">{step.title}</h2>
-            <p className="mt-1.5 text-sm leading-relaxed text-muted">{step.body}</p>
+            <p className="mt-1.5 text-sm leading-relaxed text-tinta-2">{step.body}</p>
           </li>
         ))}
       </ol>

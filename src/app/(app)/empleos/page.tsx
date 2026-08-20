@@ -23,15 +23,15 @@ export default async function EmpleosPage() {
 
   if (!profile || profile.skills.length === 0) {
     return (
-      <div className="mx-auto max-w-md rounded-lg border border-dashed border-line px-6 py-12 text-center">
+      <div className="mx-auto max-w-md rounded-sm border border-dashed border-pauta px-6 py-12 text-center">
         <h1 className="font-medium">Aún no sabemos qué buscar</h1>
-        <p className="mt-2 text-sm text-muted">
+        <p className="mt-2 text-sm text-tinta-2">
           Sube tu CV y detectamos tus lenguajes y frameworks. Las ofertas se
           buscan a partir de esas skills.
         </p>
         <Link
           href="/perfil"
-          className="mt-6 inline-block rounded-md bg-foreground px-4 py-3 text-sm text-canvas transition-opacity hover:opacity-90"
+          className="mt-6 inline-block rounded-sm bg-tinta px-4 py-3 text-sm text-papel transition-opacity hover:opacity-90"
         >
           Ir a mi perfil
         </Link>
@@ -52,7 +52,7 @@ export default async function EmpleosPage() {
   return (
     // useSearchParams needs a Suspense boundary above it; without one the whole
     // route opts out of static rendering with a build-time warning.
-    <Suspense fallback={<p className="text-sm text-muted">Cargando filtros...</p>}>
+    <Suspense fallback={<p className="text-sm text-tinta-2">Cargando filtros...</p>}>
       <EmpleosClient
         skills={names}
         defaultSkills={names.slice(0, TOP_SKILLS)}

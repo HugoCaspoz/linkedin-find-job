@@ -69,14 +69,14 @@ export default function RegisterPage() {
     <div className="flex flex-1 items-center justify-center px-6 py-10">
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-sm space-y-5 rounded-2xl border border-line bg-surface p-8 shadow-sm"
+        className="w-full max-w-sm space-y-5 rounded-sm border border-pauta bg-papel p-8"
       >
         <h1 className="text-2xl font-semibold tracking-tight">Crear cuenta</h1>
 
         <div className="space-y-1.5">
           <label htmlFor="name" className="block text-sm font-medium">
             Nombre{" "}
-            <span className="font-normal text-muted">
+            <span className="font-normal text-tinta-2">
               (opcional)
             </span>
           </label>
@@ -86,7 +86,7 @@ export default function RegisterPage() {
             autoComplete="name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full min-h-11 rounded-lg border border-line-strong bg-transparent px-3 text-sm placeholder:text-muted"
+            className="w-full min-h-11 rounded-sm border border-pauta-fuerte bg-transparent px-3 text-sm placeholder:text-tinta-2"
           />
         </div>
 
@@ -102,7 +102,7 @@ export default function RegisterPage() {
             placeholder="tu@email.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full min-h-11 rounded-lg border border-line-strong bg-transparent px-3 text-sm placeholder:text-muted"
+            className="w-full min-h-11 rounded-sm border border-pauta-fuerte bg-transparent px-3 text-sm placeholder:text-tinta-2"
           />
         </div>
 
@@ -120,15 +120,15 @@ export default function RegisterPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             onBlur={() => setPasswordTouched(true)}
-            className="w-full min-h-11 rounded-lg border border-line-strong bg-transparent px-3 text-sm placeholder:text-muted"
+            className="w-full min-h-11 rounded-sm border border-pauta-fuerte bg-transparent px-3 text-sm placeholder:text-tinta-2"
           />
           <p
             id="password-hint"
             className={
               "text-sm " +
               (passwordTooShort
-                ? "text-danger"
-                : "text-muted")
+                ? "text-aviso"
+                : "text-tinta-2")
             }
           >
             Mínimo {MIN_PASSWORD} caracteres
@@ -136,7 +136,7 @@ export default function RegisterPage() {
         </div>
 
         {error && (
-          <p role="alert" className="text-sm text-danger">
+          <p role="alert" className="text-sm text-aviso">
             {error}
           </p>
         )}
@@ -144,14 +144,14 @@ export default function RegisterPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full min-h-11 rounded-lg bg-accent text-sm font-medium text-accent-contrast transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full min-h-11 rounded-sm bg-tinta text-sm font-medium text-papel transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {loading ? "Creando..." : "Crear cuenta"}
         </button>
 
-        <p className="text-sm text-muted">
+        <p className="text-sm text-tinta-2">
           ¿Ya tienes cuenta?{" "}
-          <Link href="/login" className="text-accent underline">
+          <Link href="/login" className="text-tinta underline">
             Inicia sesión
           </Link>
         </p>

@@ -39,7 +39,8 @@ function row(over: Record<string, unknown> = {}) {
     seniority: "senior",
     postedAt: new Date("2026-08-19T09:00:00.000Z"),
     score: 6,
-    matchedSkills: ["PHP"],
+    matchedSkills: ["PHP", "Laravel"],
+    titleSkills: ["PHP"],
     total: 211,
     ...over,
   };
@@ -213,5 +214,19 @@ describe("searchStoredJobs — filters", () => {
     expect(job.seniority).toBeUndefined();
     expect(job.postedAt).toBeUndefined();
     expect(job.score).toBe(6);
+  });
+
+  it("separates the title matches from the description-only ones", async () => {
+    // The gauge draws a full segment for a title hit and a half one for a
+    // description hit, so the two lists have to arrive apart.
+    const [job] = (await searchStoredJobs({ skills: SKILLS })).jobs;
+
+    expect(job.matchedSkills).toEqual(["PHP", "Laravel"]);
+    expect(job.titleSkills).toEqual(["PHP"]);
+  });
+
+  it("asks Postgres for the title matches as their own column", async () => {
+    await searchStoredJobs({ skills: SKILLS });
+    expect(capturedQuery().sql).toContain('AS "titleSkills"');
   });
 });
