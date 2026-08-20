@@ -45,3 +45,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# agent skills
+# `.agents/skills` holds the skill itself and is committed; `.claude/skills`
+# is only the symlinks the installer creates so Claude Code can find it, and
+# a symlink to a path on one machine is worthless on another.
+.claude/
