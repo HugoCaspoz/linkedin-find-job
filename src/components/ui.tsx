@@ -40,7 +40,10 @@ type ButtonVariant = "primary" | "outline" | "danger" | "ghost";
 const BUTTON_BASE =
   // min-h-11 everywhere: a 44px target is the floor for a finger, and these
   // are the same controls on a phone as on a desktop.
-  "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50";
+  // active:scale is the one flourish worth having on a button: the guidance
+  // asks for feedback that is brief, precise and tied to the action, and a
+  // 2% press is over before it can be noticed as an animation.
+  "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 text-sm font-medium transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100";
 
 const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
   primary: "bg-accent text-accent-contrast hover:opacity-90",
@@ -166,7 +169,7 @@ export function Toggle({
     <label
       title={title ?? label}
       className={cx(
-        "inline-flex min-h-9 cursor-pointer items-center rounded-full border px-3 py-1.5 text-sm transition",
+        "inline-flex min-h-9 cursor-pointer select-none items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition active:scale-95",
         "has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent",
         checked
           ? "border-accent bg-accent text-accent-contrast"
@@ -176,6 +179,14 @@ export function Toggle({
       {/* sr-only, not hidden: `display:none` removes it from the tab order and
           from the accessibility tree, which is the whole point of keeping it. */}
       <input type="checkbox" checked={checked} onChange={onChange} className="sr-only" />
+      {/* Selection is not signalled by colour alone. The tick — and the width
+          it adds — reads as a shape change for anyone who can't separate the
+          filled chip from the outlined one by hue. */}
+      {checked && (
+        <span aria-hidden="true" className="text-xs leading-none">
+          ✓
+        </span>
+      )}
       <span className="max-w-40 truncate">{label}</span>
     </label>
   );
@@ -205,4 +216,28 @@ export function Badge({
  * collapsing to a single line of text and jumping back. */
 export function Skeleton({ className }: { className?: string }) {
   return <div className={cx("animate-pulse rounded-lg bg-chip", className)} />;
+}
+
+/**
+ * Indeterminate progress. Used while a search runs: the duration depends on
+ * Postgres and, when it is in play, a third-party API, so there is no
+ * percentage to report.
+ *
+ * Not a live region — the caller already announces the result through one, and
+ * a bar that announced itself would interrupt on every filter change.
+ */
+export function ProgressBar({ active }: { active: boolean }) {
+  return (
+    <div
+      role="progressbar"
+      aria-label="Buscando ofertas"
+      aria-hidden={!active}
+      className={cx(
+        "h-0.5 overflow-hidden rounded-full transition-opacity duration-200",
+        active ? "bg-chip opacity-100" : "opacity-0"
+      )}
+    >
+      {active && <div className="motion-sweep h-full w-1/4 rounded-full bg-accent" />}
+    </div>
+  );
 }

@@ -24,7 +24,10 @@ export default async function Home() {
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center px-6 py-16">
-      <div className="w-full max-w-2xl text-center">
+      {/* The one place a decorative entrance earns its keep: it plays once, on
+          a page nobody returns to, and it does not sit between anyone and a
+          task. Every other surface in the app is visited dozens of times. */}
+      <div className="motion-rise w-full max-w-2xl text-center">
         <h1 className="text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
           Ofertas que encajan con tu perfil técnico
         </h1>
@@ -47,7 +50,8 @@ export default async function Home() {
         {STEPS.map((step, i) => (
           <li
             key={step.title}
-            className="rounded-2xl border border-line bg-surface p-6 text-left shadow-sm"
+            style={{ animationDelay: `${120 + i * 70}ms` }}
+            className="motion-rise rounded-2xl border border-line bg-surface p-6 text-left shadow-sm"
           >
             <span
               // Decorative: the ordinal is already conveyed by the <ol>, so

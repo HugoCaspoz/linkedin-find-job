@@ -15,6 +15,7 @@ import {
   Badge,
   Banner,
   Button,
+  ProgressBar,
   Skeleton,
   Toggle,
   cx,
@@ -267,13 +268,20 @@ export function EmpleosClient({ skills, defaultSkills, sources }: Props) {
           </label>
         </div>
 
+        {/* Status feedback sits with the thing it describes, rather than as a
+            separate spinner: with the 500ms debounce there is otherwise a gap
+            where a filter has been ticked and nothing on screen has moved. */}
+        <div className="mb-5">
+          <ProgressBar active={searching} />
+        </div>
+
         {applied.length > 0 && (
           <div className="mb-5 flex flex-wrap items-center gap-2">
             {applied.map((chip) => (
               <button
                 key={chip.key}
                 onClick={chip.remove}
-                className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-accent-soft px-3 text-sm text-accent transition hover:opacity-80"
+                className="motion-fade inline-flex min-h-9 items-center gap-1.5 rounded-full bg-accent-soft px-3 text-sm text-accent transition hover:opacity-80 active:scale-95"
               >
                 {chip.label}
                 <span aria-hidden="true" className="text-base leading-none">
@@ -333,9 +341,15 @@ export function EmpleosClient({ skills, defaultSkills, sources }: Props) {
             ))}
           </div>
         ) : (
-          <ul className={cx("space-y-3", searching && "opacity-60 transition-opacity")}>
+          // Keyed on the query so a new result set remounts and the entrance
+          // replays. Without it React reuses the same <li> nodes and the list
+          // swaps contents with no sign that anything changed.
+          <ul
+            key={query}
+            className={cx("space-y-3", searching && "opacity-60 transition-opacity")}
+          >
             {jobs.map((job, i) => (
-              <JobCard key={`${job.source}-${job.url}-${i}`} job={job} />
+              <JobCard key={`${job.source}-${job.url}-${i}`} job={job} index={i} />
             ))}
           </ul>
         )}
@@ -481,11 +495,22 @@ function ChipRow({ children }: { children: React.ReactNode }) {
   return <div className="flex flex-wrap gap-1.5">{children}</div>;
 }
 
-function JobCard({ job }: { job: Job }) {
+/** Cards past this one appear together. Staggering the whole list would mean
+ * the last of sixty arrives two seconds late, and nobody should wait on an
+ * animation to read a result that is already loaded. */
+const STAGGER_LIMIT = 8;
+const STAGGER_STEP_MS = 35;
+
+function JobCard({ job, index }: { job: Job; index: number }) {
   const age = relativeDate(job.postedAt);
 
   return (
-    <li className="group rounded-2xl border border-line bg-surface p-5 transition hover:border-line-strong hover:shadow-md">
+    <li
+      style={{
+        animationDelay: `${Math.min(index, STAGGER_LIMIT) * STAGGER_STEP_MS}ms`,
+      }}
+      className="motion-rise rounded-2xl border border-line bg-surface p-5 transition hover:-translate-y-0.5 hover:border-line-strong hover:shadow-md"
+    >
       <h3 className="text-base font-medium leading-snug">
         <a
           href={job.url}
