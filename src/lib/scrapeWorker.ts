@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { withCache } from "@/lib/scrapeCache";
 import { SCRAPED_SOURCES } from "@/lib/jobSources";
 import type { NormalizedJob } from "@/lib/jobSources/types";
+import { detectSeniority } from "@/lib/seniority";
 
 /**
  * Runs the scraping out of band, so no user request ever waits on a scraped
@@ -83,6 +84,7 @@ async function upsertJobs(jobs: NormalizedJob[]): Promise<number> {
           url: j.url,
           description: j.description,
           workMode: j.workMode,
+          seniority: detectSeniority(j.title),
           postedAt: parseDate(j.postedAt),
         },
         update: {
@@ -92,6 +94,9 @@ async function upsertJobs(jobs: NormalizedJob[]): Promise<number> {
           url: j.url,
           description: j.description,
           workMode: j.workMode,
+          // Recomputed rather than left alone: a source that edits a title to
+          // add "Senior" should move the listing into that bucket.
+          seniority: detectSeniority(j.title),
           fetchedAt: new Date(),
         },
       })

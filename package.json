@@ -18,7 +18,9 @@
     "db:deploy": "prisma migrate deploy",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "backfill:seniority": "tsx --env-file-if-exists=.env scripts/backfill-seniority.ts",
+    "backfill:seniority:prod": "tsx --env-file-if-exists=.env.worker scripts/backfill-seniority.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.114.0",

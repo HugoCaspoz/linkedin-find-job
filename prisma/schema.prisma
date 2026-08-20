@@ -53,12 +53,18 @@ model JobListing {
   description String?
   /// Null when the source doesn't say — those match any modality filter.
   workMode    String?
+  /// junior | mid | senior, read off the title when indexing (src/lib/seniority.ts).
+  /// No source reports it, so null is the common case and means "not stated",
+  /// which the filter exposes as its own option rather than silently folding
+  /// it into a level.
+  seniority   String?
   postedAt    DateTime?
   fetchedAt   DateTime @default(now())
 
   @@unique([source, externalId])
   @@index([fetchedAt])
   @@index([workMode])
+  @@index([seniority])
   /// Trigram indexes: the search matches skills with ILIKE/regex containing a
   /// leading wildcard, which no btree index can serve.
   @@index([title(ops: raw("gin_trgm_ops"))], type: Gin)
