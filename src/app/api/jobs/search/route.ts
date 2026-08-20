@@ -13,7 +13,7 @@ import {
   type SeniorityFilter,
   type SortOrder,
 } from "@/lib/jobQuery";
-import { scoreJob } from "@/lib/matching";
+import { jsPattern, scoreJob } from "@/lib/matching";
 import { detectSeniority, isSeniority } from "@/lib/seniority";
 import { checkRateLimit } from "@/lib/rateLimit";
 import type { WorkMode } from "@/lib/jobSources/types";
@@ -152,6 +152,9 @@ export async function GET(req: Request) {
     .map((job) => ({
       ...job,
       ...scoreJob(job, skills),
+      // The stored rows get this split from SQL; the live ones have to be
+      // measured here so the fit gauge reads the same on both halves.
+      titleSkills: skills.filter((skill) => jsPattern(skill).test(job.title)),
       seniority: detectSeniority(job.title) ?? undefined,
     }))
     .filter((job) => matchesJsFilters(job, { seniorities, postedWithinDays, location }));

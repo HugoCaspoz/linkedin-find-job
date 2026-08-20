@@ -1,17 +1,28 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Archivo, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 import { THEME_BOOT_SCRIPT } from "@/lib/theme";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+/**
+ * One family in two widths rather than two unrelated faces: the width axis
+ * gives the display voice its own character while staying related to the body
+ * text, and it is one fewer file to download.
+ */
+const archivo = Archivo({
+  variable: "--font-archivo",
   subsets: ["latin"],
+  // Without this the loader ships weights only and `font-variation-settings:
+  // "wdth"` silently does nothing.
+  axes: ["wdth"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+/** Plex was drawn for technical documentation, which is exactly the register
+ * every measured value on this sheet is written in. */
+const plexMono = IBM_Plex_Mono({
+  variable: "--font-plex-mono",
   subsets: ["latin"],
+  weight: ["400", "500", "600"],
 });
 
 export const metadata: Metadata = {
@@ -32,7 +43,7 @@ export default function RootLayout({
       // hydrates, so the server markup and the live DOM differ by design.
       // Without this, React logs a hydration mismatch on every page load.
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${archivo.variable} ${plexMono.variable} h-full antialiased`}
     >
       <head>
         {/* Inline and synchronous, ahead of everything else: an external or

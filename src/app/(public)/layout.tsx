@@ -17,7 +17,7 @@ export default function PublicLayout({
         <Link href="/" className="flex items-center gap-2">
           <span
             aria-hidden="true"
-            className="grid size-6 place-items-center rounded-md bg-accent text-xs font-bold text-accent-contrast"
+            className="grid size-6 place-items-center rounded-sm bg-tinta text-xs font-bold text-papel"
           >
             J
           </span>

@@ -16,7 +16,7 @@ export default function Error({
   return (
     <div className="mx-auto w-full max-w-3xl flex-1 px-6 py-20">
       <h1 className="mb-2 text-2xl font-semibold">Algo ha fallado</h1>
-      <p className="mb-6 text-sm text-muted">
+      <p className="mb-6 text-sm text-tinta-2">
         Ha habido un error inesperado. Puedes reintentar.
         {error.digest && (
           <>
@@ -27,7 +27,7 @@ export default function Error({
       </p>
       <button
         onClick={() => unstable_retry()}
-        className="rounded-md bg-foreground px-4 py-3 text-sm text-canvas transition-opacity hover:opacity-90"
+        className="rounded-sm bg-tinta px-4 py-3 text-sm text-papel transition-opacity hover:opacity-90"
       >
         Reintentar
       </button>

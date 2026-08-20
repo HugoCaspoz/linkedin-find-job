@@ -56,7 +56,7 @@ export function ThemeToggle({ className }: { className?: string }) {
       role="radiogroup"
       aria-label="Tema"
       className={cx(
-        "inline-flex items-center gap-0.5 rounded-full border border-line bg-surface p-0.5",
+        "inline-flex items-center gap-0.5 rounded-full border border-pauta bg-papel p-0.5",
         className
       )}
     >
@@ -70,8 +70,8 @@ export function ThemeToggle({ className }: { className?: string }) {
           className={cx(
             "grid size-8 place-items-center rounded-full text-sm transition",
             preference === option
-              ? "bg-accent text-accent-contrast"
-              : "text-muted hover:bg-chip hover:text-foreground"
+              ? "bg-tinta text-papel"
+              : "text-tinta-2 hover:bg-pauta hover:text-tinta"
           )}
         >
           <span aria-hidden="true">{ICONS[option]}</span>

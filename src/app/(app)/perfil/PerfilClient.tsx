@@ -6,7 +6,7 @@ import { errorMessage, groupByCategory, readJson, type Profile } from "@/lib/ui"
 import {
   Banner,
   Button,
-  Card,
+  Sheet,
   Field,
   buttonClass,
   inputClass,
@@ -62,14 +62,14 @@ export function PerfilClient({ initialProfile }: { initialProfile: Profile | nul
   return (
     <div className="mx-auto w-full max-w-2xl">
       <header className="mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight">Tu perfil</h1>
-        <p className="mt-1.5 text-muted">
+        <h1 className="display text-2xl">Tu perfil</h1>
+        <p className="mt-1.5 text-tinta-2">
           De tu CV salen las skills, y de las skills salen las ofertas. Todo lo
           demás depende de este paso.
         </p>
       </header>
 
-      <Card>
+      <Sheet>
         <form onSubmit={handleUpload} className="space-y-5">
           <h2 className="font-medium">Sube tu CV o pega tu LinkedIn</h2>
 
@@ -82,12 +82,12 @@ export function PerfilClient({ initialProfile }: { initialProfile: Profile | nul
               type="file"
               accept="application/pdf"
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-              className="block w-full text-sm text-muted file:mr-3 file:cursor-pointer file:rounded-lg file:border file:border-line-strong file:bg-transparent file:px-3 file:py-2 file:text-sm file:font-medium file:text-foreground"
+              className="block w-full text-sm text-tinta-2 file:mr-3 file:cursor-pointer file:rounded-sm file:border file:border-pauta-fuerte file:bg-transparent file:px-3 file:py-2 file:text-sm file:font-medium file:text-tinta"
             />
           </Field>
 
-          <div className="flex items-center gap-3 text-xs uppercase tracking-wide text-muted">
-            <span className="h-px flex-1 bg-line" />o<span className="h-px flex-1 bg-line" />
+          <div className="flex items-center gap-3 text-xs uppercase tracking-wide text-tinta-2">
+            <span className="h-px flex-1 bg-pauta" />o<span className="h-px flex-1 bg-pauta" />
           </div>
 
           <Field id="linkedin-text" label="Pega el texto de tu perfil / experiencia">
@@ -118,14 +118,14 @@ export function PerfilClient({ initialProfile }: { initialProfile: Profile | nul
             {uploading ? "Analizando con IA…" : "Analizar perfil"}
           </Button>
         </form>
-      </Card>
+      </Sheet>
 
       {profile ? (
         <section className="mt-10">
           <div className="mb-5 flex flex-wrap items-baseline justify-between gap-3">
-            <h2 className="text-lg font-medium">
+            <h2 className="display text-lg">
               Skills detectadas
-              <span className="ml-1.5 text-sm font-normal text-muted">
+              <span className="ml-1.5 text-sm font-normal text-tinta-2">
                 {profile.skills.length}
               </span>
             </h2>
@@ -135,17 +135,17 @@ export function PerfilClient({ initialProfile }: { initialProfile: Profile | nul
           </div>
 
           {profile.summary && (
-            <Card className="mb-6 bg-accent-soft/50">
+            <Sheet className="mb-6 bg-medida-suave/50">
               <p className="text-sm leading-relaxed">
                 {profile.summary}
                 {profile.yearsExp != null && (
-                  <span className="text-muted">
+                  <span className="text-tinta-2">
                     {" "}
                     — ~{profile.yearsExp} años de experiencia
                   </span>
                 )}
               </p>
-            </Card>
+            </Sheet>
           )}
 
           {/* Grouped by category: twenty pills in one heap is a wall, the same
@@ -153,18 +153,18 @@ export function PerfilClient({ initialProfile }: { initialProfile: Profile | nul
           <div className="space-y-5">
             {groups.map(([label, items]) => (
               <div key={label}>
-                <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted">
+                <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-tinta-2">
                   {label}
                 </h3>
                 <div className="flex flex-wrap gap-1.5">
                   {items.map((s) => (
                     <span
                       key={s.name}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1.5 text-sm"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-pauta bg-papel px-3 py-1.5 text-sm"
                     >
                       {s.name}
                       {s.yearsExp != null && (
-                        <span className="text-xs text-muted">{s.yearsExp}a</span>
+                        <span className="text-xs text-tinta-2">{s.yearsExp}a</span>
                       )}
                     </span>
                   ))}
@@ -174,7 +174,7 @@ export function PerfilClient({ initialProfile }: { initialProfile: Profile | nul
           </div>
         </section>
       ) : (
-        <p className="mt-8 text-center text-sm text-muted">
+        <p className="mt-8 text-center text-sm text-tinta-2">
           Todavía no hay skills detectadas. Sube un CV en PDF o pega el texto de
           tu perfil para empezar.
         </p>
