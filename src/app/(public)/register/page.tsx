@@ -69,9 +69,9 @@ export default function RegisterPage() {
     <div className="flex flex-1 items-center justify-center px-6 py-10">
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-sm space-y-4 rounded-xl border border-line bg-surface p-8 shadow-sm"
+        className="w-full max-w-sm space-y-5 rounded-2xl border border-line bg-surface p-8 shadow-sm"
       >
-        <h1 className="text-xl font-semibold">Crear cuenta</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Crear cuenta</h1>
 
         <div className="space-y-1.5">
           <label htmlFor="name" className="block text-sm font-medium">
@@ -86,7 +86,7 @@ export default function RegisterPage() {
             autoComplete="name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full rounded-md border border-line-strong px-3 py-2 dark:bg-transparent"
+            className="w-full min-h-11 rounded-lg border border-line-strong bg-transparent px-3 text-sm placeholder:text-muted"
           />
         </div>
 
@@ -102,7 +102,7 @@ export default function RegisterPage() {
             placeholder="tu@email.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-md border border-line-strong px-3 py-2 dark:bg-transparent"
+            className="w-full min-h-11 rounded-lg border border-line-strong bg-transparent px-3 text-sm placeholder:text-muted"
           />
         </div>
 
@@ -120,14 +120,14 @@ export default function RegisterPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             onBlur={() => setPasswordTouched(true)}
-            className="w-full rounded-md border border-line-strong px-3 py-2 dark:bg-transparent"
+            className="w-full min-h-11 rounded-lg border border-line-strong bg-transparent px-3 text-sm placeholder:text-muted"
           />
           <p
             id="password-hint"
             className={
               "text-sm " +
               (passwordTooShort
-                ? "text-red-700 dark:text-red-400"
+                ? "text-danger"
                 : "text-muted")
             }
           >
@@ -136,7 +136,7 @@ export default function RegisterPage() {
         </div>
 
         {error && (
-          <p role="alert" className="text-sm text-red-700 dark:text-red-400">
+          <p role="alert" className="text-sm text-danger">
             {error}
           </p>
         )}
@@ -144,7 +144,7 @@ export default function RegisterPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-md bg-foreground py-3 text-canvas transition-opacity hover:opacity-90 disabled:opacity-50"
+          className="w-full min-h-11 rounded-lg bg-accent text-sm font-medium text-accent-contrast transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {loading ? "Creando..." : "Crear cuenta"}
         </button>

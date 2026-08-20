@@ -89,3 +89,45 @@ export function relativeDate(iso: string | undefined): string | null {
   if (days === 1) return "ayer";
   return `hace ${days} días`;
 }
+
+/**
+ * The categories `extractProfile` assigns. Grouping the skill list by these
+ * turns twenty loose pills into five short, labelled rows — the same
+ * information, but readable at a glance.
+ */
+export const CATEGORY_LABELS: Record<string, string> = {
+  language: "Lenguajes",
+  framework: "Frameworks",
+  database: "Bases de datos",
+  cloud: "Cloud y DevOps",
+  tool: "Herramientas",
+  other: "Otras",
+};
+
+/** Fixed order so the list doesn't reshuffle between uploads. */
+export const CATEGORY_ORDER = [
+  "language",
+  "framework",
+  "database",
+  "cloud",
+  "tool",
+  "other",
+] as const;
+
+export function groupByCategory(skills: Skill[]): [string, Skill[]][] {
+  const groups = new Map<string, Skill[]>();
+
+  for (const skill of skills) {
+    // A category the model invented, or none at all, still has to appear
+    // somewhere — dropping it would silently lose a skill from the list.
+    const key = skill.category && CATEGORY_LABELS[skill.category] ? skill.category : "other";
+    const bucket = groups.get(key);
+    if (bucket) bucket.push(skill);
+    else groups.set(key, [skill]);
+  }
+
+  return CATEGORY_ORDER.filter((key) => groups.has(key)).map((key) => [
+    CATEGORY_LABELS[key],
+    groups.get(key)!,
+  ]);
+}
