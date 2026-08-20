@@ -46,7 +46,7 @@ const BUTTON_BASE =
   "inline-flex min-h-11 items-center justify-center gap-2 rounded-sm px-4 text-sm font-medium transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45 disabled:active:scale-100";
 
 const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
-  primary: "bg-tinta text-papel hover:opacity-90",
+  primary: "bg-marca text-papel hover:opacity-90",
   outline: "border border-pauta-fuerte hover:bg-pauta",
   danger: "bg-aviso text-papel hover:opacity-90",
   ghost: "text-tinta-2 hover:bg-pauta hover:text-tinta",
@@ -165,9 +165,9 @@ export function Toggle({
       title={title ?? label}
       className={cx(
         "inline-flex min-h-9 cursor-pointer select-none items-center gap-1.5 rounded-sm border px-2.5 py-1.5 font-mono text-sm transition active:scale-95",
-        "has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-medida",
+        "has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-marca",
         checked
-          ? "border-tinta bg-tinta text-papel"
+          ? "border-marca bg-marca text-papel"
           : "border-pauta-fuerte text-tinta-2 hover:bg-pauta hover:text-tinta"
       )}
     >

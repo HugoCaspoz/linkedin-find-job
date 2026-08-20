@@ -8,11 +8,15 @@
  * listings — the same job a component datasheet does. Paper, one text ink, and
  * a spot ink held back for measured values.
  *
- * The discipline is the rule, not the hues: `--medida` never touches chrome.
- * No buttons, no tabs, no navigation. It appears where the machine has
- * measured something, and on the element it is currently acting on. Spend it
- * anywhere else and this reads as "a site with a purple accent" rather than a
- * datasheet.
+ * Two plates, not one. `--marca` prints the chrome — buttons, the active tab,
+ * a selected chip — and `--medida` prints measured values and nothing else.
+ *
+ * An earlier pass gave chrome to the text ink and reserved the only colour for
+ * measurements, which was too strict by half: it left ninety per cent of the
+ * screen in two tones and read as monochrome. A two-colour print job has two
+ * colours. What survives from that rule is the part that matters — `--medida`
+ * still means "measured" and appears nowhere else, so the gauge keeps its
+ * meaning.
  *
  * Not blue, deliberately. InfoJobs, LinkedIn and Tecnoempleo are all blue, and
  * this tool aggregates those three — looking like them is the one thing it
@@ -24,42 +28,51 @@
  */
 :root,
 :root[data-theme="light"] {
-  /* Engineering paper: cool and faintly green, not the warm cream that every
-     generated design reaches for. */
-  --papel: #ecefea;
-  /* Ruling and the filled label cells. A datasheet separates fields with tinted
-     blocks, not hairlines — that is what keeps this off the broadsheet look. */
-  --pauta: #cfd5cb;
-  --pauta-fuerte: #a8b1a6;
-  --tinta: #14181a; /* 15.4:1 on --papel */
-  --tinta-2: #4f5960; /* 5.3:1 on --papel */
+  /* Pale celadon, not the warm cream every generated design reaches for and
+     not a neutral grey either. Paper that has been through a press has a cast. */
+  --papel: #ecede7;
+  /* Ruling and the filled label cells. A datasheet separates fields with
+     tinted blocks, not hairlines — that is what keeps this off the broadsheet
+     look. */
+  --pauta: #d3d8cf;
+  --pauta-fuerte: #adb5aa;
+  /* Ink, not black: printers' ink is blue-black, and pure #000 on paper is the
+     one value that never occurs in print. */
+  --tinta: #16232b; /* 13.6:1 on --papel */
+  --tinta-2: #55666e; /* 5.1:1 on --papel */
 
-  /* Ultramarine printing ink. Measured values and the fit gauge only. */
-  --medida: #3a2fc7; /* 8.1:1 on --papel */
-  --medida-suave: rgb(58 47 199 / 0.10);
+  /* First plate. Chrome — buttons, the active tab, a selected chip. */
+  --marca: #1f5d62; /* 6.4:1 on --papel */
+  --marca-suave: rgb(31 93 98 / 0.10);
 
-  /* The single warning ink, as on a printed sheet. */
-  --aviso: #b03a0b; /* 5.6:1 on --papel */
-  --aviso-suave: rgb(176 58 11 / 0.09);
-  --ok: #256a3a; /* 5.2:1 on --papel */
+  /* Second plate. Measured values and the fit gauge, nothing else. */
+  --medida: #985006; /* 5.1:1 on --papel */
+  --medida-suave: rgb(152 80 6 / 0.12);
+
+  --aviso: #a32d1e; /* 6.0:1 on --papel */
+  --aviso-suave: rgb(163 45 30 / 0.09);
+  --ok: #2a6b3d; /* 5.5:1 on --papel */
 
   color-scheme: light;
 }
 
 /* The negative: the same sheet photographed, not a separate "dark theme". */
 :root[data-theme="dark"] {
-  --papel: #101413;
-  --pauta: #242a28;
-  --pauta-fuerte: #3d4541;
-  --tinta: #e7ebe4; /* 14.6:1 on --papel */
-  --tinta-2: #98a29b; /* 7.4:1 on --papel */
+  --papel: #0f1418;
+  --pauta: #232b2f;
+  --pauta-fuerte: #3a4549;
+  --tinta: #e8ede9; /* 15.6:1 on --papel */
+  --tinta-2: #93a5a8; /* 7.2:1 on --papel */
 
-  --medida: #9a8cff; /* 7.9:1 on --papel */
-  --medida-suave: rgb(154 140 255 / 0.16);
+  --marca: #6fd3d0; /* 10.5:1 on --papel */
+  --marca-suave: rgb(111 211 208 / 0.14);
 
-  --aviso: #f2794a; /* 8.0:1 on --papel */
-  --aviso-suave: rgb(242 121 74 / 0.14);
-  --ok: #5fc98a; /* 9.6:1 on --papel */
+  --medida: #f0a64a; /* 9.1:1 on --papel */
+  --medida-suave: rgb(240 166 74 / 0.16);
+
+  --aviso: #ff8a6b; /* 8.0:1 on --papel */
+  --aviso-suave: rgb(255 138 107 / 0.14);
+  --ok: #63c88a; /* 9.0:1 on --papel */
 
   color-scheme: dark;
 }
@@ -70,6 +83,9 @@
   --color-pauta-fuerte: var(--pauta-fuerte);
   --color-tinta: var(--tinta);
   --color-tinta-2: var(--tinta-2);
+
+  --color-marca: var(--marca);
+  --color-marca-suave: var(--marca-suave);
 
   --color-medida: var(--medida);
   --color-medida-suave: var(--medida-suave);
@@ -123,10 +139,10 @@ body {
   letter-spacing: -0.01em;
 }
 
-/* Focus is the one place the spot ink is allowed outside a measurement: it
-   marks what the interface is acting on, and legibility outranks the rule. */
+/* Focus belongs to the chrome plate: it marks what the interface is acting on,
+   which is chrome's job, and it keeps the measurement ink meaning one thing. */
 :focus-visible {
-  outline: 2px solid var(--medida);
+  outline: 2px solid var(--marca);
   outline-offset: 2px;
 }
 

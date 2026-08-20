@@ -47,7 +47,7 @@ export function NavTabs() {
                 className={cx(
                   "-mb-px border-b-2 px-3 py-4 text-sm transition-colors",
                   active
-                    ? "border-tinta font-medium text-tinta"
+                    ? "border-marca font-medium text-tinta"
                     : "border-transparent text-tinta-2 hover:text-tinta"
                 )}
               >
