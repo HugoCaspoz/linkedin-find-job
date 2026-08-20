@@ -751,7 +751,7 @@ function JobRow({
       // The whole row is not a link on purpose: a row-sized target makes the
       // text inside it unselectable, and copying a job title is a thing people
       // do.
-      className="underline-offset-4 hover:underline"
+      className="text-marca underline-offset-4 hover:underline"
     >
       {job.title}
       <span className="sr-only"> (se abre en otra pestaña)</span>
@@ -893,7 +893,7 @@ function ViewToggle({ view, onChange }: { view: View; onChange: (view: View) => 
           className={cx(
             "grid size-8 place-items-center text-sm transition",
             view === option.value
-              ? "bg-tinta text-papel"
+              ? "bg-marca text-papel"
               : "text-tinta-2 hover:bg-pauta hover:text-tinta"
           )}
         >
@@ -974,7 +974,7 @@ function Pagination({
             className={cx(
               "valor min-h-9 min-w-9 px-2 text-sm transition active:scale-95",
               entry === page
-                ? "bg-tinta text-papel"
+                ? "bg-marca text-papel"
                 : "text-tinta-2 hover:bg-pauta hover:text-tinta"
             )}
           >

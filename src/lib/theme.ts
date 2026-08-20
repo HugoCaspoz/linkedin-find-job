@@ -10,13 +10,20 @@
 
 export const THEME_STORAGE_KEY = "tema";
 
-/** What the user picked. `system` means "keep following the OS". */
+/**
+ * What the user picked. `system` is a real state but not an offered one: it is
+ * where everybody starts, and it is what "no choice stored" resolves to. There
+ * is no button for it, because the two buttons already show the resolved
+ * appearance — a third control for "whatever the OS says" is a state people
+ * have to reason about rather than see.
+ */
 export type ThemePreference = "system" | "light" | "dark";
 
 /** What actually gets written to `data-theme`. */
 export type ResolvedTheme = "light" | "dark";
 
-export const THEME_PREFERENCES: ThemePreference[] = ["light", "dark", "system"];
+/** The choices the toggle offers. `system` is deliberately absent. */
+export const THEME_CHOICES: ResolvedTheme[] = ["light", "dark"];
 
 export function isThemePreference(value: unknown): value is ThemePreference {
   return value === "system" || value === "light" || value === "dark";
@@ -58,9 +65,15 @@ export function subscribeTheme(onChange: () => void): () => void {
   listeners.add(onChange);
   window.addEventListener("storage", onChange);
 
+  // While no choice is stored the OS *is* the setting, so a sunset flip has to
+  // reach the toggle as well as the page.
+  const query = window.matchMedia("(prefers-color-scheme: dark)");
+  query.addEventListener("change", onChange);
+
   return () => {
     listeners.delete(onChange);
     window.removeEventListener("storage", onChange);
+    query.removeEventListener("change", onChange);
   };
 }
 
@@ -78,9 +91,19 @@ export function readThemePreference(): ThemePreference {
 }
 
 /** There is no storage while rendering on the server, and no way to know the
- * OS setting either — so the server always renders the neutral option. */
-export function readServerThemePreference(): ThemePreference {
-  return "system";
+ * OS setting either. Light is the assumption; the first client render corrects
+ * it, and the paint was already correct because the boot script ran first. */
+export function readServerTheme(): ResolvedTheme {
+  return "light";
+}
+
+/**
+ * The appearance actually in force: the stored choice, or the OS when there
+ * isn't one. This is what the toggle marks as selected, so the control always
+ * shows the truth without needing a third "system" state on screen.
+ */
+export function readResolvedTheme(): ResolvedTheme {
+  return resolveTheme(readThemePreference());
 }
 
 export function writeThemePreference(preference: ThemePreference): void {
