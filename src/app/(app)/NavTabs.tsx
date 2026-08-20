@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
+import { cx } from "@/components/ui";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const TABS = [
   { href: "/empleos", label: "Empleos" },
@@ -15,12 +17,21 @@ export function NavTabs() {
 
   return (
     <header className="sticky top-0 z-10 border-b border-line bg-canvas/85 backdrop-blur">
-      <div className="mx-auto flex w-full max-w-5xl items-center gap-4 px-6 sm:gap-6">
+      <div className="mx-auto flex w-full max-w-6xl items-center gap-4 px-6 sm:gap-8">
         {/* Hidden on phones: brand + three tabs + sign-out overflow 390px, and
             the brand is the one piece every page repeats in its own heading. */}
-        <span className="hidden shrink-0 py-4 text-sm font-semibold tracking-tight sm:block">
-          Job Matcher
-        </span>
+        <Link
+          href="/empleos"
+          className="hidden shrink-0 items-center gap-2 py-4 sm:flex"
+        >
+          <span
+            aria-hidden="true"
+            className="grid size-6 place-items-center rounded-md bg-accent text-xs font-bold text-accent-contrast"
+          >
+            J
+          </span>
+          <span className="text-sm font-semibold tracking-tight">Job Matcher</span>
+        </Link>
 
         <nav className="flex flex-1 gap-1">
           {TABS.map((tab) => {
@@ -33,12 +44,12 @@ export function NavTabs() {
                 // with the underline — the colour change alone says nothing to
                 // a screen reader.
                 aria-current={active ? "page" : undefined}
-                className={
-                  "border-b-2 px-3 py-4 text-sm transition-colors " +
-                  (active
+                className={cx(
+                  "-mb-px border-b-2 px-3 py-4 text-sm transition-colors",
+                  active
                     ? "border-accent font-medium text-foreground"
-                    : "border-transparent text-muted hover:text-foreground")
-                }
+                    : "border-transparent text-muted hover:text-foreground"
+                )}
               >
                 {tab.label}
               </Link>
@@ -46,14 +57,18 @@ export function NavTabs() {
           })}
         </nav>
 
-        {/* py-4 rather than bare text: as an unpadded 20px line this was well
-            under the 44px touch target the tabs beside it already meet. */}
-        <button
-          onClick={() => signOut({ callbackUrl: "/" })}
-          className="shrink-0 py-4 text-sm text-muted underline"
-        >
-          Cerrar sesión
-        </button>
+        <div className="flex shrink-0 items-center gap-3">
+          <ThemeToggle />
+
+          {/* py-4 rather than bare text: as an unpadded 20px line this was well
+              under the 44px touch target the tabs beside it already meet. */}
+          <button
+            onClick={() => signOut({ callbackUrl: "/" })}
+            className="py-4 text-sm text-muted transition-colors hover:text-foreground"
+          >
+            Salir
+          </button>
+        </div>
       </div>
     </header>
   );

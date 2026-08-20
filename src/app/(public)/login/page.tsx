@@ -48,9 +48,9 @@ export default function LoginPage() {
     <div className="flex flex-1 items-center justify-center px-6 py-10">
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-sm space-y-4 rounded-xl border border-line bg-surface p-8 shadow-sm"
+        className="w-full max-w-sm space-y-5 rounded-2xl border border-line bg-surface p-8 shadow-sm"
       >
-        <h1 className="text-xl font-semibold">Iniciar sesión</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Iniciar sesión</h1>
 
         {/* Visible labels rather than placeholders: a placeholder is gone the
             moment you start typing, which is when you most want to check what
@@ -67,7 +67,7 @@ export default function LoginPage() {
             placeholder="tu@email.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-md border border-line-strong px-3 py-2 dark:bg-transparent"
+            className="w-full min-h-11 rounded-lg border border-line-strong bg-transparent px-3 text-sm placeholder:text-muted"
           />
         </div>
 
@@ -82,12 +82,12 @@ export default function LoginPage() {
             autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-md border border-line-strong px-3 py-2 dark:bg-transparent"
+            className="w-full min-h-11 rounded-lg border border-line-strong bg-transparent px-3 text-sm placeholder:text-muted"
           />
         </div>
 
         {error && (
-          <p role="alert" className="text-sm text-red-700 dark:text-red-400">
+          <p role="alert" className="text-sm text-danger">
             {error}
           </p>
         )}
@@ -95,7 +95,7 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-md bg-foreground py-3 text-canvas transition-opacity hover:opacity-90 disabled:opacity-50"
+          className="w-full min-h-11 rounded-lg bg-accent text-sm font-medium text-accent-contrast transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {loading ? "Entrando..." : "Entrar"}
         </button>
