@@ -14,6 +14,7 @@ import {
   type SortOrder,
 } from "@/lib/jobQuery";
 import { jsPattern, scoreJob } from "@/lib/matching";
+import { excerpt, requiredYears } from "@/lib/fitSignals";
 import { detectSeniority, isSeniority } from "@/lib/seniority";
 import { checkRateLimit } from "@/lib/rateLimit";
 import type { WorkMode } from "@/lib/jobSources/types";
@@ -149,9 +150,18 @@ export async function GET(req: Request) {
   // Doing it after the fetch rather than skipping the fetch is unavoidable:
   // the API can't express these filters.
   const scoredAdzuna: ScoredJob[] = adzunaJobs
-    .map((job) => ({
+    .map(({ description, ...job }) => ({
       ...job,
-      ...scoreJob(job, skills),
+      ...scoreJob({ ...job, description }, skills),
+      // Scored against the full text above, then dropped from the response —
+      // the stored half only ships an excerpt, and sending the whole thing here
+      // would make the two halves of the same list disagree about their shape.
+      excerpt: excerpt(description),
+      hasDescription: description != null && description.length > 0,
+      // Never analysable: these rows are not stored, so by the time a request
+      // for one arrived the full description would be gone.
+      canAnalyze: false,
+      requiredYears: requiredYears(description),
       // The stored rows get this split from SQL; the live ones have to be
       // measured here so the fit gauge reads the same on both halves.
       titleSkills: skills.filter((skill) => jsPattern(skill).test(job.title)),

@@ -1,5 +1,6 @@
 import * as cheerio from "cheerio";
 import { FETCH_TIMEOUT_MS } from "./types";
+import { extractDescription, fetchDetailHtml } from "./detail";
 import type { NormalizedJob, WorkMode } from "./types";
 import { throttleHost } from "@/lib/rateLimit";
 
@@ -83,4 +84,35 @@ export async function scrapeLinkedIn(
   } catch {
     return [];
   }
+}
+
+/**
+ * Where the description lives once the guest endpoint has rendered it. The
+ * second is the older wrapper, still served on some postings.
+ */
+const DESCRIPTION_SELECTORS = [
+  ".show-more-less-html__markup",
+  ".description__text",
+  ".core-section-container__content",
+];
+
+/**
+ * The description of a single posting.
+ *
+ * Fetched from the guest *posting* endpoint rather than from the public
+ * `linkedin.com/jobs/view/...` URL that is stored and shown to the user: that
+ * one answers a scraper with a login wall, while this is the same unauthenticated
+ * endpoint the search already uses, one level deeper.
+ */
+export async function fetchLinkedInDescription(job: {
+  externalId: string;
+  url: string;
+}): Promise<string | undefined> {
+  const html = await fetchDetailHtml(
+    `https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/${encodeURIComponent(job.externalId)}`,
+    "linkedin.com"
+  );
+  if (!html) return undefined;
+
+  return extractDescription(html, DESCRIPTION_SELECTORS);
 }

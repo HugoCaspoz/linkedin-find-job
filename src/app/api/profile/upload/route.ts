@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { extractProfile, ProfileExtractionError } from "@/lib/extractSkills";
+import { isOnlyLinks, normalizeLinkedinUrl } from "@/lib/profileInput";
 import { checkRateLimit } from "@/lib/rateLimit";
 
 // PDF parsing plus a Claude call; well over the default budget on most hosts.
@@ -12,12 +12,6 @@ export const maxDuration = 60;
 const UPLOADS_PER_HOUR = 10;
 const MAX_PDF_BYTES = 5 * 1024 * 1024;
 const MAX_TEXT_CHARS = 50_000;
-
-const linkedinUrlSchema = z
-  .url()
-  .refine((u) => u.startsWith("http://") || u.startsWith("https://"), {
-    message: "La URL debe ser http(s)",
-  });
 
 export async function POST(req: Request) {
   const session = await auth();
@@ -77,11 +71,16 @@ export async function POST(req: Request) {
   const linkedinUrlRaw = formData.get("linkedinUrl");
   let linkedinUrl: string | undefined;
   if (typeof linkedinUrlRaw === "string" && linkedinUrlRaw.trim()) {
-    const parsedUrl = linkedinUrlSchema.safeParse(linkedinUrlRaw.trim());
-    if (!parsedUrl.success) {
-      return NextResponse.json({ error: "URL de LinkedIn inválida" }, { status: 400 });
+    linkedinUrl = normalizeLinkedinUrl(linkedinUrlRaw);
+    if (!linkedinUrl) {
+      return NextResponse.json(
+        {
+          error:
+            "Esa no parece la URL de un perfil de LinkedIn. Ejemplo: https://linkedin.com/in/tu-nombre",
+        },
+        { status: 400 }
+      );
     }
-    linkedinUrl = parsedUrl.data;
   }
 
   let rawText = linkedinText.trim();
@@ -105,6 +104,21 @@ export async function POST(req: Request) {
   if (!rawText) {
     return NextResponse.json(
       { error: "Sube un CV en PDF o pega el texto de tu perfil de LinkedIn" },
+      { status: 400 }
+    );
+  }
+
+  // Before the paid call, because a link is exactly the input the extractor
+  // cannot do anything with: it used to spend a Claude call on forty characters
+  // of URL and fail with "El modelo no devolvió JSON", which reads like a bug
+  // rather than like the thing the app never did. Nothing here fetches the
+  // profile — see src/lib/profileInput.ts for why it cannot.
+  if (isOnlyLinks(rawText)) {
+    return NextResponse.json(
+      {
+        error:
+          "Con el enlace no basta: LinkedIn no deja leer tu perfil desde fuera. Descárgalo en PDF (Más → Guardar como PDF) y súbelo aquí, o pega el texto de tu experiencia.",
+      },
       { status: 400 }
     );
   }

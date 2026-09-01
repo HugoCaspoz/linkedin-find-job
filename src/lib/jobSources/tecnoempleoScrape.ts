@@ -1,5 +1,6 @@
 import * as cheerio from "cheerio";
 import { FETCH_TIMEOUT_MS } from "./types";
+import { extractDescription, fetchDetailHtml } from "./detail";
 import type { NormalizedJob, WorkMode } from "./types";
 import { throttleHost } from "@/lib/rateLimit";
 
@@ -86,4 +87,27 @@ export async function scrapeTecnoempleo(
   } catch {
     return [];
   }
+}
+
+/**
+ * Tecnoempleo's detail markup. The last entry is the Bootstrap column the
+ * offer body sits in — broad, but it is what the page has been built on for
+ * years, and `extractDescription` reads the page structurally if it misses.
+ */
+const DESCRIPTION_SELECTORS = [
+  "#descripcion",
+  ".ficha-oferta",
+  ".job-description",
+  ".col-lg-8",
+];
+
+/** The description of a single offer, from its own page. */
+export async function fetchTecnoempleoDescription(job: {
+  externalId: string;
+  url: string;
+}): Promise<string | undefined> {
+  const html = await fetchDetailHtml(job.url, "tecnoempleo.com", "es-ES,es;q=0.9");
+  if (!html) return undefined;
+
+  return extractDescription(html, DESCRIPTION_SELECTORS);
 }

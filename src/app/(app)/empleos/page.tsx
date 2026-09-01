@@ -57,6 +57,7 @@ export default async function EmpleosPage() {
         skills={names}
         defaultSkills={names.slice(0, TOP_SKILLS)}
         sources={withAdzuna}
+        yearsExp={profile.yearsExp}
       />
     </Suspense>
   );

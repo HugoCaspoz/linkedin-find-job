@@ -22,12 +22,26 @@ export interface AccountExport {
     yearsExp: number | null;
     level: string | null;
   }[];
+  /** Cached fit verdicts. Derived from the CV, so they are personal data too. */
+  jobFits: {
+    source: string;
+    externalId: string;
+    score: number;
+    verdict: string;
+    summary: string;
+    strengths: string[];
+    gaps: string[];
+    createdAt: string;
+  }[];
 }
 
 export async function exportAccount(userId: string): Promise<AccountExport | null> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    include: { profile: { include: { skills: true } } },
+    include: {
+      profile: { include: { skills: true } },
+      jobFits: { orderBy: { createdAt: "desc" } },
+    },
   });
   if (!user) return null;
 
@@ -56,16 +70,33 @@ export async function exportAccount(userId: string): Promise<AccountExport | nul
       yearsExp: s.yearsExp,
       level: s.level,
     })),
+    jobFits: user.jobFits.map((f) => ({
+      source: f.source,
+      externalId: f.externalId,
+      score: f.score,
+      verdict: f.verdict,
+      summary: f.summary,
+      strengths: f.strengths,
+      gaps: f.gaps,
+      createdAt: f.createdAt.toISOString(),
+    })),
   };
 }
 
 /**
  * Drops the CV and everything derived from it while keeping the account.
  * Skills go through the Profile cascade.
+ *
+ * Fit verdicts have to be deleted explicitly: they hang off the User, not off
+ * the Profile, so no cascade reaches them — and they are derived from the CV,
+ * quote parts of it back, and would otherwise survive a request to delete it.
  */
 export async function deleteProfileData(userId: string): Promise<boolean> {
-  const { count } = await prisma.profile.deleteMany({ where: { userId } });
-  return count > 0;
+  const [, profile] = await prisma.$transaction([
+    prisma.jobFit.deleteMany({ where: { userId } }),
+    prisma.profile.deleteMany({ where: { userId } }),
+  ]);
+  return profile.count > 0;
 }
 
 /**
@@ -78,6 +109,7 @@ export function personalRateLimitKeys(userId: string, email: string): string[] {
   return [
     `upload:${userId}`,
     `search:${userId}`,
+    `fit:${userId}`,
     `export:${userId}`,
     `account-delete:${userId}`,
     // Built by the limiter itself, so the two cannot drift apart.
@@ -86,8 +118,9 @@ export function personalRateLimitKeys(userId: string, email: string): string[] {
 }
 
 /**
- * Deletes the account outright. Profile and Skill go through the FK cascade
- * declared in the schema (verified in the migration: ON DELETE CASCADE).
+ * Deletes the account outright. Profile, Skill and JobFit go through the FK
+ * cascade declared in the schema (verified in the migrations: ON DELETE
+ * CASCADE).
  */
 export async function deleteAccount(userId: string, email: string): Promise<void> {
   await prisma.$transaction([

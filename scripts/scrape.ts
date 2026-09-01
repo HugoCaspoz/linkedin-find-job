@@ -4,6 +4,7 @@
  *
  *   npm run scrape
  *   npm run scrape -- --queries "React,Python" --max 10
+ *   npm run scrape -- --descriptions 100   # detail pages per source, 0 skips
  *
  * Point cron at it, e.g. every 6 hours:
  *   0 *\/6 * * * cd /srv/link && npm run scrape >> /var/log/link-scrape.log 2>&1
@@ -19,11 +20,15 @@ function flag(name: string): string | undefined {
 async function main() {
   const queriesArg = flag("queries");
   const maxArg = flag("max");
+  const descriptionsArg = flag("descriptions");
 
   const started = Date.now();
   const summary = await runScrapeCycle({
     queries: queriesArg?.split(",").map((q) => q.trim()).filter(Boolean),
     maxQueries: maxArg ? Number(maxArg) : undefined,
+    // No deadline: run from cron on a machine you control, this is allowed to
+    // take as long as the per-host cooldowns need.
+    descriptionBudget: descriptionsArg ? Number(descriptionsArg) : undefined,
   });
 
   const secs = ((Date.now() - started) / 1000).toFixed(1);
@@ -34,6 +39,11 @@ async function main() {
   for (const [source, count] of Object.entries(summary.perSource)) {
     console.log(`  ${source}: ${count}`);
   }
+
+  const { attempted, filled } = summary.descriptions;
+  console.log(
+    `[scrape] descripciones: ${filled}/${attempted} páginas de detalle leídas`
+  );
 }
 
 main()

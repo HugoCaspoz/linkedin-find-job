@@ -71,7 +71,7 @@ export function PerfilClient({ initialProfile }: { initialProfile: Profile | nul
 
       <Sheet>
         <form onSubmit={handleUpload} className="space-y-5">
-          <h2 className="font-medium">Sube tu CV o pega tu LinkedIn</h2>
+          <h2 className="font-medium">Sube tu CV o pega tu experiencia</h2>
 
           {/* Each control gets a real label. The file input in particular had
               no accessible name at all — a screen reader announced only
@@ -101,13 +101,23 @@ export function PerfilClient({ initialProfile }: { initialProfile: Profile | nul
             />
           </Field>
 
-          <Field id="linkedin-url" label="URL de tu perfil de LinkedIn" optional>
+          {/* Marked as a stored field rather than a source, because that is
+              what it is: LinkedIn walls profile pages, so nothing here can read
+              one. Saying so is the fix for people pasting the link and getting
+              an extraction error back. */}
+          <Field
+            id="linkedin-url"
+            label="URL de tu perfil de LinkedIn"
+            optional
+            hint="Solo se guarda como dato de tu perfil: LinkedIn no permite leerlo desde fuera. Para usarlo, descárgalo en PDF (Más → Guardar como PDF) y súbelo arriba."
+          >
             <input
               id="linkedin-url"
               type="url"
               placeholder="https://linkedin.com/in/…"
               value={linkedinUrl}
               onChange={(e) => setLinkedinUrl(e.target.value)}
+              aria-describedby="linkedin-url-hint"
               className={inputClass()}
             />
           </Field>
