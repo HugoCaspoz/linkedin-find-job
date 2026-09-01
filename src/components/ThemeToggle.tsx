@@ -2,33 +2,29 @@
 
 import { useEffect, useSyncExternalStore } from "react";
 import {
-  THEME_CHOICES,
+  otherTheme,
   readResolvedTheme,
   readServerTheme,
   readThemePreference,
   resolveTheme,
   subscribeTheme,
   writeThemePreference,
-  type ResolvedTheme,
 } from "@/lib/theme";
 import { cx } from "@/components/ui";
 
-const LABELS: Record<ResolvedTheme, string> = {
-  light: "Claro",
-  dark: "Oscuro",
-};
-
-const ICONS: Record<ResolvedTheme, string> = {
-  light: "☀",
-  dark: "☾",
-};
+/** The glyph names the appearance you are in, not the one you would get. */
+const ICONS = { dark: "☀", light: "☾" } as const;
+const LABELS = {
+  dark: "Cambiar a claro",
+  light: "Cambiar a oscuro",
+} as const;
 
 export function ThemeToggle({ className }: { className?: string }) {
   /**
    * The *resolved* appearance, not the stored preference. Somebody who has
-   * never chosen is following the OS, and this still marks the button that
-   * matches what they are looking at — which is why the interface needs no
-   * third "system" control to explain that state.
+   * never chosen is following the OS, and flipping from there has to land on
+   * the opposite of what they are actually looking at — which is why the
+   * interface needs no third "system" control to explain that state.
    */
   const theme = useSyncExternalStore(subscribeTheme, readResolvedTheme, readServerTheme);
 
@@ -40,32 +36,17 @@ export function ThemeToggle({ className }: { className?: string }) {
   }, [theme]);
 
   return (
-    <div
-      role="radiogroup"
-      aria-label="Tema"
+    <button
+      type="button"
+      onClick={() => writeThemePreference(otherTheme(theme))}
+      aria-label={LABELS[theme]}
+      title={LABELS[theme]}
       className={cx(
-        "inline-flex items-center rounded-sm border border-pauta-fuerte",
+        "grid size-[34px] shrink-0 place-items-center rounded-[9px] border border-line bg-surf text-[13px] text-tx2 transition hover:border-line2 hover:text-tx",
         className
       )}
     >
-      {THEME_CHOICES.map((option) => (
-        <button
-          key={option}
-          role="radio"
-          aria-checked={theme === option}
-          title={LABELS[option]}
-          onClick={() => writeThemePreference(option)}
-          className={cx(
-            "grid size-8 place-items-center text-sm transition",
-            theme === option
-              ? "bg-marca text-papel"
-              : "text-tinta-2 hover:bg-pauta hover:text-tinta"
-          )}
-        >
-          <span aria-hidden="true">{ICONS[option]}</span>
-          <span className="sr-only">{LABELS[option]}</span>
-        </button>
-      ))}
-    </div>
+      <span aria-hidden="true">{ICONS[theme]}</span>
+    </button>
   );
 }

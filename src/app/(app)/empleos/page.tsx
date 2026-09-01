@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { availableSources } from "@/lib/jobQuery";
+import { buttonClass } from "@/components/ui";
 import { EmpleosClient } from "./EmpleosClient";
 
 /** Mirrors the API's fallback when no skill is ticked. */
@@ -23,17 +24,14 @@ export default async function EmpleosPage() {
 
   if (!profile || profile.skills.length === 0) {
     return (
-      <div className="mx-auto max-w-md rounded-sm border border-dashed border-pauta px-6 py-12 text-center">
-        <h1 className="font-medium">Aún no sabemos qué buscar</h1>
-        <p className="mt-2 text-sm text-tinta-2">
+      <div className="motion-rise mx-auto mt-11 max-w-md rounded-2xl border border-dashed border-line2 px-6 py-14 text-center">
+        <h1 className="text-lg font-semibold">Aún no sabemos qué buscar</h1>
+        <p className="mt-2 text-sm text-tx2">
           Sube tu CV y detectamos tus lenguajes y frameworks. Las ofertas se
           buscan a partir de esas skills.
         </p>
-        <Link
-          href="/perfil"
-          className="mt-6 inline-block rounded-sm bg-tinta px-4 py-3 text-sm text-papel transition-opacity hover:opacity-90"
-        >
-          Ir a mi perfil
+        <Link href="/perfil" className={buttonClass("pill", "mt-6")}>
+          Subir mi CV
         </Link>
       </div>
     );
@@ -52,7 +50,7 @@ export default async function EmpleosPage() {
   return (
     // useSearchParams needs a Suspense boundary above it; without one the whole
     // route opts out of static rendering with a build-time warning.
-    <Suspense fallback={<p className="text-sm text-tinta-2">Cargando filtros...</p>}>
+    <Suspense fallback={<p className="px-6 pt-7 text-sm text-tx2">Cargando filtros…</p>}>
       <EmpleosClient
         skills={names}
         defaultSkills={names.slice(0, TOP_SKILLS)}

@@ -15,8 +15,8 @@ export default function GlobalError({
       <body className="flex min-h-full flex-col">
         <title>Error — JobMatch</title>
         <div className="mx-auto w-full max-w-3xl flex-1 px-6 py-20">
-          <h1 className="mb-2 text-2xl font-semibold">Algo ha fallado</h1>
-          <p className="mb-6 text-sm text-tinta-2">
+          <h1 className="mb-2 text-2xl font-bold tracking-[-0.025em]">Algo ha fallado</h1>
+          <p className="mb-6 text-sm text-tx2">
             La aplicación no ha podido cargarse.
             {error.digest && (
               <>
@@ -27,7 +27,7 @@ export default function GlobalError({
           </p>
           <button
             onClick={() => unstable_retry()}
-            className="rounded-sm bg-tinta px-4 py-3 text-sm text-papel transition-opacity hover:opacity-90"
+            className="min-h-11 rounded-[10px] bg-acc px-5 text-[15px] font-semibold text-acc-tx transition hover:opacity-[0.88]"
           >
             Reintentar
           </button>

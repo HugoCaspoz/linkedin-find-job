@@ -1,23 +1,21 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
   <!--
-    The fit gauge, same geometry as src/components/Logo.tsx.
+    The fit gauge, same notation as src/components/Logo.tsx.
 
     Duplicated on purpose: a favicon is fetched by the browser as a standalone
     document, so it cannot reach the page's custom properties and the palette
-    has to be inlined. The media query is what keeps the plate from vanishing
-    against a dark browser chrome.
+    has to be inlined. Unlike the in-page mark this one sits on its own tile —
+    a bare row of bars is unreadable at 16px against browser chrome.
   -->
   <style>
-    :root { --plate: #1f5d62; --mark: #ecede7; }
-    @media (prefers-color-scheme: dark) {
-      :root { --plate: #6fd3d0; --mark: #0f1418; }
+    :root { --plate: #0d1011; --acc: #c2f24a; --empty: #333d40; }
+    @media (prefers-color-scheme: light) {
+      :root { --plate: #ffffff; --acc: #496b00; --empty: #cfd5c8; }
     }
   </style>
-  <rect width="32" height="32" rx="6" fill="var(--plate)"/>
-  <g fill="var(--mark)">
-    <rect x="4.25" y="8" width="4" height="16"/>
-    <rect x="10.75" y="8" width="4" height="16"/>
-    <rect x="17.25" y="16" width="4" height="8"/>
-    <rect x="23.75" y="8" width="4" height="16" opacity="0.35"/>
-  </g>
+  <rect width="32" height="32" rx="7" fill="var(--plate)"/>
+  <rect x="5" y="8" width="4.5" height="16" rx="1.5" fill="var(--acc)"/>
+  <rect x="11.5" y="8" width="4.5" height="16" rx="1.5" fill="var(--acc)"/>
+  <rect x="18" y="16" width="4.5" height="8" rx="1.5" fill="var(--acc)"/>
+  <rect x="24.5" y="8" width="4.5" height="16" rx="1.5" fill="var(--empty)"/>
 </svg>

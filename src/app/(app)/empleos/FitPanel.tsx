@@ -17,15 +17,17 @@ import { Button, Skeleton, cx } from "@/components/ui";
  * different amounts of trust:
  *
  *  - The excerpt and the years asked for are read straight off the description
- *    with no judgement involved, so they are shown as soon as the row opens.
+ *    with no judgement involved, so they are shown as soon as the card opens.
  *  - The verdict is a model reading the whole description against the CV. It
  *    costs a call, so it happens only when asked for, and says so.
  */
 
+/** Only the verdict earns a colour other than the accent: `--warn` and `--ok`
+ * exist for exactly this, a judgement that went one way or the other. */
 const VERDICT_STYLES: Record<string, { bar: string; text: string }> = {
   strong: { bar: "bg-ok", text: "text-ok" },
-  partial: { bar: "bg-medida", text: "text-medida" },
-  weak: { bar: "bg-aviso", text: "text-aviso" },
+  partial: { bar: "bg-acc", text: "text-acc" },
+  weak: { bar: "bg-warn", text: "text-warn" },
 };
 
 export function FitPanel({ job, yearsExp }: { job: Job; yearsExp: number | null }) {
@@ -63,27 +65,27 @@ export function FitPanel({ job, yearsExp }: { job: Job; yearsExp: number | null 
       : undefined;
 
   return (
-    <div className="motion-fade mt-4 border-t border-pauta pt-4">
+    <div className="motion-fade mt-4 border-t border-line pt-4">
       {job.excerpt ? (
-        <p className="max-w-prose text-sm leading-relaxed text-tinta-2">{job.excerpt}</p>
+        <p className="max-w-prose text-sm leading-relaxed text-tx2">{job.excerpt}</p>
       ) : (
-        <p className="text-sm text-tinta-2">
+        <p className="text-sm text-tx2">
           Todavía no hemos leído la descripción de esta oferta. El worker la busca
           en su propia página en el siguiente ciclo.
         </p>
       )}
 
       {job.requiredYears != null && (
-        <p className="valor mt-3 text-xs text-tinta-2">
+        <p className="valor mt-3 text-xs text-tx3">
           Pide {job.requiredYears} años de experiencia
           {shortfall != null && (
-            <span className="text-aviso"> · te faltan {shortfall}</span>
+            <span className="text-warn"> · te faltan {shortfall}</span>
           )}
         </p>
       )}
 
       {fit ? (
-        <FitVerdict fit={fit} />
+        <FitVerdict fit={fit} title={job.title} />
       ) : (
         <div className="mt-4">
           {job.canAnalyze ? (
@@ -91,7 +93,7 @@ export function FitPanel({ job, yearsExp }: { job: Job; yearsExp: number | null 
               {loading ? "Analizando…" : "Analizar encaje con mi CV"}
             </Button>
           ) : (
-            <p className="text-xs text-tinta-2">
+            <p className="text-xs text-tx3">
               {job.hasDescription
                 ? // Adzuna: served live from their API and never stored, so by the
                   // time an analysis was requested the text would be gone.
@@ -110,7 +112,7 @@ export function FitPanel({ job, yearsExp }: { job: Job; yearsExp: number | null 
       )}
 
       {error && (
-        <p role="alert" className="mt-3 text-sm text-aviso">
+        <p role="alert" className="mt-3 text-sm text-warn">
           {error}
         </p>
       )}
@@ -118,37 +120,37 @@ export function FitPanel({ job, yearsExp }: { job: Job; yearsExp: number | null 
   );
 }
 
-function FitVerdict({ fit }: { fit: JobFit }) {
+function FitVerdict({ fit, title }: { fit: JobFit; title: string }) {
   const style = VERDICT_STYLES[fit.verdict] ?? VERDICT_STYLES.weak;
 
   return (
-    <div className="motion-fade mt-4">
-      <div className="flex items-baseline gap-3">
-        <span className={cx("display text-sm", style.text)}>
-          {FIT_VERDICT_LABELS[fit.verdict]}
+    <div className="motion-fade mt-4 rounded-[14px] border border-acc-line bg-bg p-5">
+      <div className="mb-4 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <span className="text-sm font-semibold">
+          Detalle del encaje — <span className={style.text}>{FIT_VERDICT_LABELS[fit.verdict]}</span>
         </span>
-        <span className="valor text-xs text-tinta-2">{fit.score}/100</span>
+        <span className="valor text-[13px] text-acc">{fit.score}/100</span>
       </div>
 
       {/* The score as a measure rather than a number alone, in the same
           vocabulary as the skills gauge above it. */}
       <div
         role="img"
-        aria-label={`Encaje ${fit.score} sobre 100`}
-        className="mt-2 h-1.5 w-full max-w-64 bg-pauta"
+        aria-label={`Encaje ${fit.score} sobre 100 para ${title}`}
+        className="mb-5 h-1.5 overflow-hidden rounded-full bg-line"
       >
         <div className={cx("h-full", style.bar)} style={{ width: `${fit.score}%` }} />
       </div>
 
-      <p className="mt-3 max-w-prose text-sm leading-relaxed">{fit.summary}</p>
+      <p className="max-w-prose text-sm leading-relaxed">{fit.summary}</p>
 
-      <div className="mt-4 grid gap-4 sm:grid-cols-2">
-        <FitList label="a favor" items={fit.strengths} tone="text-ok" />
-        <FitList label="te falta" items={fit.gaps} tone="text-aviso" />
+      <div className="mt-5 grid gap-6 sm:grid-cols-2">
+        <FitList label="A favor" items={fit.strengths} tone="text-ok" />
+        <FitList label="Te falta" items={fit.gaps} tone="text-warn" />
       </div>
 
       {fit.cached && (
-        <p className="valor mt-3 text-xs text-tinta-2">
+        <p className="valor mt-4 text-xs text-tx3">
           Análisis guardado. Se rehace solo si actualizas tu CV.
         </p>
       )}
@@ -169,14 +171,11 @@ function FitList({
 
   return (
     <div>
-      <p className="rotulo">{label}</p>
-      <ul className="mt-1.5 space-y-1.5">
+      <p className={cx("rotulo", tone)}>{label}</p>
+      <ul className="mt-2.5 flex flex-col gap-1.5 text-sm text-tx2">
         {items.map((item) => (
-          <li key={item} className="flex gap-2 text-sm leading-relaxed">
-            <span aria-hidden="true" className={cx("select-none", tone)}>
-              ·
-            </span>
-            <span>{item}</span>
+          <li key={item} className="leading-relaxed">
+            {item}
           </li>
         ))}
       </ul>
