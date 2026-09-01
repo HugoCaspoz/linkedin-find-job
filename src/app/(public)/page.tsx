@@ -1,17 +1,18 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { FitGauge, buttonClass, cx } from "@/components/ui";
+import { FitGauge, GaugeLegend, buttonClass } from "@/components/ui";
+import { SOURCES } from "@/components/SiteFooter";
 
 /**
- * The hero is the gauge, not a headline over three numbered cards.
+ * One column, one claim, one specimen.
  *
- * The one thing this product has that a job board does not is that it shows
- * its working: a listing's fit is a segment per skill, filled when the skill is
- * in the title and half when it is only in the body. Describing that in prose
- * and illustrating it with icons would be the template answer. Printing an
- * actual specimen of the results sheet says it in one look, and it is the same
- * component the signed-in page renders.
+ * The thing this product has that a job board does not is that it shows its
+ * working: a listing's fit is a bar per skill, full when the skill is in the
+ * title and half when it is only in the body. Describing that in prose over
+ * three numbered cards would be the template answer. Printing an actual
+ * specimen of the results says it in one look, and it is the same component
+ * the signed-in page renders.
  */
 
 /**
@@ -27,10 +28,10 @@ const SPECIMEN_SKILLS = ["JavaScript", "React", "PHP", "Python", "SQL"];
 
 /**
  * Example rows, not listings. No company names and no links: this is a drawing
- * of the interface, and dressing it up as real postings would be a lie told for
- * decoration.
+ * of the interface, and dressing it up as real postings would be a lie told
+ * for decoration.
  *
- * Ordered by the same rule the real sheet uses — a title hit scores three, a
+ * Ordered by the same rule the real results use — a title hit scores three, a
  * description hit one — so the specimen obeys its own sort. Getting that wrong
  * is the sort of detail an attentive reader catches and stops trusting.
  */
@@ -40,192 +41,105 @@ const SPECIMEN = [
     title: "Full Stack JavaScript — React y Node",
     matched: ["JavaScript", "React", "SQL"],
     inTitle: ["JavaScript", "React"],
-    level: "senior",
-    mode: "Remoto",
-    age: "hace 2 días",
+    meta: ["Remoto", "senior", "hace 2 días"],
   },
   {
     // Python + SQL in the title: 3 + 3 = 6
     title: "Data Engineer — Python y SQL",
     matched: ["Python", "SQL"],
     inTitle: ["Python", "SQL"],
-    level: "—",
-    mode: "Híbrido",
-    age: "hoy",
+    meta: ["Híbrido", "hoy"],
   },
   {
     // PHP in the title, JavaScript and SQL in the body: 3 + 1 + 1 = 5
     title: "Desarrollador/a PHP con Symfony",
     matched: ["PHP", "JavaScript", "SQL"],
     inTitle: ["PHP"],
-    level: "junior",
-    mode: "Presencial",
-    age: "ayer",
+    meta: ["Presencial", "junior", "ayer"],
   },
   {
     // Nothing in the title, SQL in the body: 1. A weak fit belongs in the
-    // sample — a gauge that only ever shows near-full segments proves nothing.
+    // sample — a gauge that only ever shows near-full bars proves nothing.
     title: "Analista programador/a Java",
     matched: ["SQL"],
     inTitle: [],
-    level: "—",
-    mode: "Presencial",
-    age: "hace 4 días",
+    meta: ["Presencial", "hace 4 días"],
   },
 ];
-
-const SOURCES = ["InfoJobs", "LinkedIn", "Tecnoempleo", "Adzuna"];
-
-const COLUMNS = "md:grid-cols-[5rem_1fr_5.5rem_6rem_5.5rem] md:gap-4";
 
 export default async function Home() {
   const session = await auth();
   if (session?.user) redirect("/empleos");
 
   return (
-    <div className="mx-auto w-full max-w-5xl flex-1 px-6 pb-20">
-      <section className="motion-rise border-b border-pauta-fuerte py-14 sm:py-20">
-        <p className="rotulo">Buscador de empleo técnico</p>
+    <div className="motion-rise mx-auto w-full max-w-[820px] px-7 pb-24 pt-20">
+      <h1 className="max-w-[19ch] text-[clamp(34px,4.6vw,52px)] font-semibold leading-[1.08] tracking-[-0.035em] text-balance">
+        Mira si encajas antes de abrir la oferta.
+      </h1>
 
-        <h1 className="display mt-4 max-w-3xl text-4xl leading-[1.05] text-balance sm:text-6xl">
-          Cada oferta, medida contra tus skills
-        </h1>
+      <p className="mt-5 max-w-[52ch] text-[18px] leading-relaxed text-tx2">
+        Subes tu CV y ordenamos las ofertas de cuatro portales por cuánto se
+        parecen a lo que sabes hacer.
+      </p>
 
-        <p className="mt-6 max-w-xl text-lg leading-relaxed text-tinta-2">
-          Subes el CV una vez y sacamos tus lenguajes, frameworks y años en cada
-          uno. A partir de ahí cada oferta se puntúa contra esa lista — y te
-          enseñamos la puntuación desglosada, no un número suelto.
-        </p>
+      <div className="mt-[34px] flex flex-wrap items-center gap-3">
+        <Link href="/register" className={buttonClass("pill")}>
+          Subir mi CV
+        </Link>
+        <span className="text-[13.5px] text-tx3">Gratis, sin tarjeta. Un minuto.</span>
+      </div>
 
-        <div className="mt-9 flex flex-wrap gap-3">
-          <Link href="/register" className={buttonClass("primary", "px-6")}>
-            Crear cuenta
-          </Link>
-          <Link href="/login" className={buttonClass("outline", "px-6")}>
-            Iniciar sesión
-          </Link>
-        </div>
-      </section>
-
-      <section
-        className="motion-rise pt-12"
-        style={{ animationDelay: "120ms" }}
-        aria-labelledby="muestra"
-      >
-        <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
-          <h2 id="muestra" className="rotulo">
-            Muestra — así se lee una búsqueda
+      <section aria-labelledby="muestra" className="mt-16">
+        <div className="flex flex-wrap items-baseline gap-x-4 gap-y-2 border-b border-line pb-3.5">
+          <h2 id="muestra" className="text-[15px] font-semibold">
+            Un perfil de ejemplo
           </h2>
-          <p className="valor text-xs text-tinta-2">
-            medido contra {SPECIMEN_SKILLS.join(" · ")}
-          </p>
+          <p className="valor text-[13px] text-tx3">{SPECIMEN_SKILLS.join(" · ")}</p>
         </div>
 
-        <div className={cx("mt-5 hidden border-b border-pauta-fuerte pb-1.5 md:grid", COLUMNS)}>
-          <span className="rotulo">encaje</span>
-          <span className="rotulo">puesto</span>
-          <span className="rotulo">nivel</span>
-          <span className="rotulo">modalidad</span>
-          <span className="rotulo text-right">public.</span>
-        </div>
-
-        <ul className="divide-y divide-pauta border-b border-pauta">
-          {SPECIMEN.map((row, i) => (
+        <ul>
+          {SPECIMEN.map((row) => (
             <li
               key={row.title}
-              style={{ animationDelay: `${200 + i * 70}ms` }}
-              className={cx("motion-rise py-4 md:grid md:items-start", COLUMNS)}
+              className="flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-line px-1 py-5"
             >
-              <div className="mb-3 md:mb-0">
-                <FitGauge
-                  skills={SPECIMEN_SKILLS}
-                  matched={row.matched}
-                  inTitle={row.inTitle}
-                />
+              <div className="min-w-0 flex-1">
+                <p className="text-[18px] font-semibold leading-[1.3] tracking-[-0.018em]">
+                  {row.title}
+                </p>
+                {/* Joined after the empty fields are dropped: a listing with no
+                    stated level must not print a separator with nothing
+                    either side of it. */}
+                <p className="mt-1 text-sm text-tx2">{row.meta.join(" · ")}</p>
               </div>
 
-              <p className="display text-[0.95rem] leading-snug">{row.title}</p>
-
-              <SpecimenCell label="nivel">{row.level}</SpecimenCell>
-              <SpecimenCell label="modalidad">{row.mode}</SpecimenCell>
-              <SpecimenCell label="publicado" align="right">
-                {row.age}
-              </SpecimenCell>
+              <FitGauge
+                skills={SPECIMEN_SKILLS}
+                matched={row.matched}
+                inTitle={row.inTitle}
+                className="shrink-0"
+              />
             </li>
           ))}
         </ul>
 
-        {/* The notation, explained where it is used, the way a sheet explains
-            its own symbols instead of leaving the reader to infer them. */}
-        <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-pauta pt-4">
-          <span className="rotulo">encaje</span>
-          <Key fill="bg-medida">en el título</Key>
-          <Key fill="bg-[linear-gradient(to_top,var(--medida)_50%,var(--pauta)_50%)]">
-            solo en la descripción
-          </Key>
-          <Key fill="bg-pauta">no aparece</Key>
-        </div>
+        {/* The notation, explained where it is used, rather than left for the
+            reader to infer. */}
+        <GaugeLegend className="mt-5" />
 
-        <p className="mt-5 max-w-2xl text-sm leading-relaxed text-tinta-2">
-          Una casilla por cada skill que buscas. Un acierto en el título pesa el
-          triple que uno en la descripción, así que dos ofertas con el mismo
-          número de coincidencias no valen lo mismo — y aquí se ve cuál es cuál
-          sin abrir ninguna.
+        <p className="mt-[22px] max-w-[56ch] text-[14.5px] leading-[1.65] text-tx3">
+          Una barra por cada skill del perfil. Un acierto en el título pesa más
+          que uno en la descripción, por eso dos ofertas con las mismas
+          coincidencias no quedan igual de arriba.
         </p>
       </section>
 
-      <section
-        className="motion-rise mt-14 border-t border-pauta-fuerte pt-8"
-        style={{ animationDelay: "480ms" }}
-      >
-        <h2 className="rotulo">De dónde salen</h2>
-        <ul className="mt-3 flex flex-wrap gap-x-8 gap-y-2">
-          {SOURCES.map((source) => (
-            <li key={source} className="valor text-sm">
-              {source}
-            </li>
-          ))}
-        </ul>
-        <p className="mt-4 max-w-2xl text-sm leading-relaxed text-tinta-2">
-          El índice se refresca por su cuenta y las ofertas se sirven hasta dos
-          semanas. Filtras por skill, nivel, modalidad, fecha y ubicación, y la
-          búsqueda entera cabe en la URL: la copias y quien la abra ve lo mismo
-          que tú.
-        </p>
-      </section>
+      <div className="mt-14 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-line pt-5 text-[13.5px] text-tx3">
+        {SOURCES.map((source) => (
+          <span key={source}>{source}</span>
+        ))}
+        <span className="ml-auto">Actualizado cada día</span>
+      </div>
     </div>
-  );
-}
-
-function SpecimenCell({
-  label,
-  align = "left",
-  children,
-}: {
-  label: string;
-  align?: "left" | "right";
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="mt-1.5 flex gap-3 md:mt-0 md:block">
-      <span className="rotulo w-24 shrink-0 md:hidden">{label}</span>
-      <span
-        className={cx(
-          "valor text-sm text-tinta-2",
-          align === "right" && "md:block md:text-right"
-        )}
-      >
-        {children}
-      </span>
-    </div>
-  );
-}
-
-function Key({ fill, children }: { fill: string; children: React.ReactNode }) {
-  return (
-    <span className="flex items-center gap-2 text-xs text-tinta-2">
-      <span aria-hidden="true" className={cx("h-3 w-2", fill)} />
-      {children}
-    </span>
   );
 }

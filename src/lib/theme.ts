@@ -13,7 +13,7 @@ export const THEME_STORAGE_KEY = "tema";
 /**
  * What the user picked. `system` is a real state but not an offered one: it is
  * where everybody starts, and it is what "no choice stored" resolves to. There
- * is no button for it, because the two buttons already show the resolved
+ * is no button for it, because the toggle already shows the resolved
  * appearance — a third control for "whatever the OS says" is a state people
  * have to reason about rather than see.
  */
@@ -22,11 +22,13 @@ export type ThemePreference = "system" | "light" | "dark";
 /** What actually gets written to `data-theme`. */
 export type ResolvedTheme = "light" | "dark";
 
-/** The choices the toggle offers. `system` is deliberately absent. */
-export const THEME_CHOICES: ResolvedTheme[] = ["light", "dark"];
-
 export function isThemePreference(value: unknown): value is ThemePreference {
   return value === "system" || value === "light" || value === "dark";
+}
+
+/** The toggle flips; it does not offer a list. */
+export function otherTheme(theme: ResolvedTheme): ResolvedTheme {
+  return theme === "dark" ? "light" : "dark";
 }
 
 /**
@@ -39,6 +41,8 @@ export function isThemePreference(value: unknown): value is ThemePreference {
  * The try/catch is not defensive padding — reading localStorage throws
  * outright in a cross-origin iframe and under "block third-party cookies",
  * and an exception here would abort the script before the attribute is set.
+ * Dark is what it falls back to, because dark is what the stylesheet does with
+ * no attribute at all.
  */
 export const THEME_BOOT_SCRIPT = `
 (function () {
@@ -46,10 +50,10 @@ export const THEME_BOOT_SCRIPT = `
     var stored = localStorage.getItem(${JSON.stringify(THEME_STORAGE_KEY)});
     var theme = stored === "light" || stored === "dark"
       ? stored
-      : (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      : (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
     document.documentElement.dataset.theme = theme;
   } catch (e) {
-    document.documentElement.dataset.theme = "light";
+    document.documentElement.dataset.theme = "dark";
   }
 })();
 `;
@@ -67,7 +71,7 @@ export function subscribeTheme(onChange: () => void): () => void {
 
   // While no choice is stored the OS *is* the setting, so a sunset flip has to
   // reach the toggle as well as the page.
-  const query = window.matchMedia("(prefers-color-scheme: dark)");
+  const query = window.matchMedia("(prefers-color-scheme: light)");
   query.addEventListener("change", onChange);
 
   return () => {
@@ -91,16 +95,17 @@ export function readThemePreference(): ThemePreference {
 }
 
 /** There is no storage while rendering on the server, and no way to know the
- * OS setting either. Light is the assumption; the first client render corrects
- * it, and the paint was already correct because the boot script ran first. */
+ * OS setting either. Dark is the assumption, matching the stylesheet's default;
+ * the first client render corrects it, and the paint was already correct
+ * because the boot script ran first. */
 export function readServerTheme(): ResolvedTheme {
-  return "light";
+  return "dark";
 }
 
 /**
  * The appearance actually in force: the stored choice, or the OS when there
- * isn't one. This is what the toggle marks as selected, so the control always
- * shows the truth without needing a third "system" state on screen.
+ * isn't one. This is what the toggle reports, so the control always shows the
+ * truth without needing a third "system" state on screen.
  */
 export function readResolvedTheme(): ResolvedTheme {
   return resolveTheme(readThemePreference());
@@ -123,5 +128,5 @@ export function writeThemePreference(preference: ThemePreference): void {
  * matchMedia, which does not exist while rendering on the server. */
 export function resolveTheme(preference: ThemePreference): ResolvedTheme {
   if (preference !== "system") return preference;
-  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
 }
