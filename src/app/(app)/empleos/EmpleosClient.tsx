@@ -24,6 +24,7 @@ import {
   selectClass,
 } from "@/components/ui";
 import { DEFAULT_PER_PAGE, PAGE_SIZES } from "@/lib/jobQuery";
+import { FitPanel } from "./FitPanel";
 import type { WorkMode } from "@/lib/jobSources/types";
 import type { Seniority } from "@/lib/seniority";
 
@@ -82,6 +83,8 @@ interface Props {
   defaultSkills: string[];
   /** Sources actually present in the fresh index, plus Adzuna when live. */
   sources: string[];
+  /** Total years on the CV, compared against what a listing asks for. */
+  yearsExp: number | null;
 }
 
 function toggle<T>(list: T[], value: T): T[] {
@@ -92,7 +95,7 @@ function csv(params: URLSearchParams, key: string): string[] {
   return params.get(key)?.split(",").map((v) => v.trim()).filter(Boolean) ?? [];
 }
 
-export function EmpleosClient({ skills, defaultSkills, sources }: Props) {
+export function EmpleosClient({ skills, defaultSkills, sources, yearsExp }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -144,6 +147,15 @@ export function EmpleosClient({ skills, defaultSkills, sources }: Props) {
   /** The conditions block always shows what is applied; the controls that
    * change it stay folded until asked for. */
   const [editing, setEditing] = useState(false);
+
+  /**
+   * Which listing has its description open, as `source:externalId`.
+   *
+   * One at a time: the panel is tall, and two open rows push everything else
+   * off the screen — but more to the point, the fit analysis costs a model
+   * call, so a UI that invited opening ten at once would be inviting ten calls.
+   */
+  const [openJob, setOpenJob] = useState<string | null>(null);
 
   /**
    * Anything that changes *which* listings match has to send you back to page
@@ -669,6 +681,13 @@ export function EmpleosClient({ skills, defaultSkills, sources }: Props) {
                 index={i}
                 view={view}
                 skills={activeSkills}
+                yearsExp={yearsExp}
+                open={openJob === jobKey(job)}
+                onToggle={() =>
+                  setOpenJob((current) =>
+                    current === jobKey(job) ? null : jobKey(job)
+                  )
+                }
               />
             ))}
           </ul>
@@ -729,19 +748,58 @@ function ColumnHeadings() {
 const STAGGER_LIMIT = 8;
 const STAGGER_STEP_MS = 30;
 
+/** Identifies a listing across renders and to /api/jobs/fit. */
+function jobKey(job: Job): string {
+  return `${job.source}:${job.externalId}`;
+}
+
 function JobRow({
   job,
   index,
   view,
   skills,
+  yearsExp,
+  open,
+  onToggle,
 }: {
   job: Job;
   index: number;
   view: View;
   skills: string[];
+  yearsExp: number | null;
+  open: boolean;
+  onToggle: () => void;
 }) {
   const age = relativeDate(job.postedAt);
   const delay = `${Math.min(index, STAGGER_LIMIT) * STAGGER_STEP_MS}ms`;
+  const panelId = `detalle-${jobKey(job).replace(/[^a-zA-Z0-9-]/g, "-")}`;
+
+  /**
+   * The row's own control, separate from the title link. The title goes to the
+   * job board; this opens what the listing says without leaving the page,
+   * which is the difference between judging an offer and visiting twenty tabs
+   * to judge them.
+   */
+  const disclosure = (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={open}
+      aria-controls={panelId}
+      className="valor inline-flex items-center gap-1.5 text-xs text-tinta-2 underline-offset-4 transition hover:text-marca hover:underline"
+    >
+      <span aria-hidden="true" className={cx("transition-transform", open && "rotate-90")}>
+        ›
+      </span>
+      {open ? "Ocultar" : "Ver qué pide"}
+    </button>
+  );
+
+  const panel = open ? (
+    <div id={panelId}>
+      <FitPanel job={job} yearsExp={yearsExp} />
+    </div>
+  ) : null;
 
   const title = (
     <a
@@ -786,6 +844,8 @@ function JobRow({
             {age && <Badge>{age}</Badge>}
           </div>
         </div>
+        {disclosure}
+        {panel}
       </li>
     );
   }
@@ -808,6 +868,7 @@ function JobRow({
           {job.location}
           {` · ${sourceLabel(job.source)}`}
         </p>
+        <div className="mt-2">{disclosure}</div>
       </div>
 
       {/* Below md the columns fold into their own labelled pairs, which is how
@@ -817,6 +878,11 @@ function JobRow({
       <Cell label="publicado" align="right">
         {age ?? "—"}
       </Cell>
+
+      {/* Spans every column: the description is the row's content, not one of
+          its fields, so confining it to the title column would set it in a
+          third of the width for no reason. */}
+      {panel && <div className="md:col-span-full">{panel}</div>}
     </li>
   );
 }

@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { DESCRIPTION_WEIGHT, TITLE_WEIGHT, postgresPattern } from "@/lib/matching";
+import { SIGNAL_CHARS, excerpt, requiredYears } from "@/lib/fitSignals";
 import type { Seniority } from "@/lib/seniority";
 import type { NormalizedJob, WorkMode } from "@/lib/jobSources/types";
 
@@ -45,9 +46,31 @@ export interface JobFilters {
   perPage?: number;
 }
 
-export interface ScoredJob extends NormalizedJob {
+/**
+ * `description` is deliberately not part of this. Descriptions run to
+ * thousands of characters now that the worker actually fetches them, and a
+ * page of twenty-four of them is a quarter of a megabyte of JSON for text no
+ * list view renders. What the client gets instead is `excerpt`, plus the
+ * signals read off the full text server-side.
+ */
+export interface ScoredJob extends Omit<NormalizedJob, "description"> {
   score: number;
   matchedSkills: string[];
+  /** Opening lines of the description, for preview. */
+  excerpt?: string;
+  /** False when the detail page has not been read yet, or could not be. */
+  hasDescription: boolean;
+  /**
+   * Whether the fit analysis can run on this listing. It needs the full
+   * description, which only exists for rows the worker stored — Adzuna results
+   * are served live and deliberately never persisted, so they carry an excerpt
+   * and nothing to analyse. Reported as its own flag rather than left for the
+   * client to infer from the source name, which is exactly the kind of rule
+   * that gets out of sync.
+   */
+  canAnalyze: boolean;
+  /** Lowest number of years the listing asks for, when it says (fitSignals). */
+  requiredYears?: number;
   /**
    * The subset of `matchedSkills` that appear in the *title*. Returned
    * separately rather than derived on the client because it is the difference
@@ -71,7 +94,7 @@ interface Row {
   company: string | null;
   location: string | null;
   url: string;
-  description: string | null;
+  descriptionHead: string | null;
   workMode: string | null;
   seniority: string | null;
   postedAt: Date | null;
@@ -230,7 +253,12 @@ export async function searchStoredJobs(filters: JobFilters): Promise<StoredJobPa
   const rows = await prisma.$queryRaw<Row[]>`
     SELECT
       j."source", j."externalId", j."title", j."company", j."location",
-      j."url", j."description", j."workMode", j."seniority", j."postedAt",
+      j."url", j."workMode", j."seniority", j."postedAt",
+      -- Not the whole column. The scoring above reads all of it inside
+      -- Postgres; only this much has to travel, and it is where every listing
+      -- puts its requirements. Evaluated on the returned rows alone, since the
+      -- SELECT list runs after ORDER BY and LIMIT.
+      LEFT(j."description", ${Prisma.raw(String(SIGNAL_CHARS))}) AS "descriptionHead",
       (${scoreSql})::int AS "score",
       ARRAY_REMOVE(ARRAY[${matchedNamesSql}]::text[], NULL) AS "matchedSkills",
       ARRAY_REMOVE(ARRAY[${titleNamesSql}]::text[], NULL) AS "titleSkills",
@@ -259,7 +287,10 @@ export async function searchStoredJobs(filters: JobFilters): Promise<StoredJobPa
     company: r.company ?? undefined,
     location: r.location ?? undefined,
     url: r.url,
-    description: r.description ?? undefined,
+    excerpt: excerpt(r.descriptionHead),
+    hasDescription: r.descriptionHead != null,
+    canAnalyze: r.descriptionHead != null,
+    requiredYears: requiredYears(r.descriptionHead),
     workMode: (r.workMode as WorkMode | null) ?? undefined,
     seniority: (r.seniority as Seniority | null) ?? undefined,
     postedAt: r.postedAt?.toISOString(),

@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { withCache } from "@/lib/scrapeCache";
 import { SCRAPED_SOURCES } from "@/lib/jobSources";
+import { enrichDescriptions, type EnrichSummary } from "@/lib/descriptionFetch";
 import type { NormalizedJob } from "@/lib/jobSources/types";
 import { detectSeniority } from "@/lib/seniority";
 
@@ -34,6 +35,13 @@ export interface ScrapeCycleOptions {
   /** Overrides the queries derived from user skills. */
   queries?: string[];
   maxQueries?: number;
+  /**
+   * Listings to fetch a description for, per source. Zero skips the pass —
+   * useful when a caller has a hard deadline it knows the pass cannot fit in.
+   */
+  descriptionBudget?: number;
+  /** Epoch ms the description pass must stop at, regardless of its budget. */
+  descriptionDeadline?: number;
 }
 
 export interface ScrapeCycleSummary {
@@ -43,6 +51,8 @@ export interface ScrapeCycleSummary {
   failures: number;
   pruned: number;
   perSource: Record<string, number>;
+  /** What the second pass managed to fill in. See src/lib/descriptionFetch.ts. */
+  descriptions: EnrichSummary;
 }
 
 /**
@@ -150,6 +160,22 @@ export async function runScrapeCycle(
       })
     );
 
+    // After the scrape, so listings indexed a moment ago are already in the
+    // queue, and before the prune, so a request is never spent on a row that
+    // is about to be deleted. Its own failures are contained: a description is
+    // an improvement to a listing that is already stored and searchable, so
+    // losing the whole cycle over one would be the wrong trade.
+    let descriptions: EnrichSummary = { attempted: 0, filled: 0, perSource: {} };
+    try {
+      descriptions = await enrichDescriptions({
+        budget: options.descriptionBudget,
+        deadline: options.descriptionDeadline,
+      });
+    } catch (err) {
+      failures += 1;
+      console.error("[scrape] la pasada de descripciones falló", err);
+    }
+
     const cutoff = new Date(Date.now() - PRUNE_AFTER_DAYS * 24 * 60 * 60 * 1000);
     const { count: pruned } = await prisma.jobListing.deleteMany({
       where: { fetchedAt: { lt: cutoff } },
@@ -160,7 +186,15 @@ export async function runScrapeCycle(
       data: { finishedAt: new Date(), upserted, failures },
     });
 
-    return { runId: run.id, queries: queries.length, upserted, failures, pruned, perSource };
+    return {
+      runId: run.id,
+      queries: queries.length,
+      upserted,
+      failures,
+      pruned,
+      perSource,
+      descriptions,
+    };
   } catch (err) {
     await prisma.scrapeRun.update({
       where: { id: run.id },

@@ -45,6 +45,8 @@ export interface Profile {
 
 export interface Job {
   source: string;
+  /** The listing's id at its source. Identifies it to /api/jobs/fit. */
+  externalId: string;
   title: string;
   company?: string;
   location?: string;
@@ -57,7 +59,33 @@ export interface Job {
   /** Subset of matchedSkills found in the title, which the scoring weights at
    * three times a description hit. The fit gauge shows that split. */
   titleSkills?: string[];
+  /** Opening of the description. The full text stays on the server. */
+  excerpt?: string;
+  /** False while the worker has not managed to read the listing's own page. */
+  hasDescription?: boolean;
+  /** Whether /api/jobs/fit can analyse this one — see ScoredJob in jobQuery. */
+  canAnalyze?: boolean;
+  /** Years of experience the description asks for, when it says so. */
+  requiredYears?: number;
 }
+
+export type FitVerdict = "strong" | "partial" | "weak";
+
+/** What POST /api/jobs/fit answers with. */
+export interface JobFit {
+  score: number;
+  verdict: FitVerdict;
+  summary: string;
+  strengths: string[];
+  gaps: string[];
+  cached: boolean;
+}
+
+export const FIT_VERDICT_LABELS: Record<FitVerdict, string> = {
+  strong: "Encajas",
+  partial: "Encajas en parte",
+  weak: "Encaje flojo",
+};
 
 /** A 500 can come back as an HTML error page rather than JSON. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

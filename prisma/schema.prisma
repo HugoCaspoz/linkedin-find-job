@@ -16,6 +16,7 @@ model User {
   name          String?
   createdAt     DateTime  @default(now())
   profile       Profile?
+  jobFits       JobFit[]
 }
 
 model Profile {
@@ -60,9 +61,17 @@ model JobListing {
   seniority   String?
   postedAt    DateTime?
   fetchedAt   DateTime @default(now())
+  /// When the detail page was last *attempted*, not last succeeded. Search
+  /// result cards carry no description, so it is fetched in a second pass
+  /// (src/lib/descriptionFetch.ts); recording the attempt is what stops a
+  /// listing whose detail page 404s from being retried on every single cycle.
+  descriptionFetchedAt DateTime?
 
   @@unique([source, externalId])
   @@index([fetchedAt])
+  /// Serves the enrichment queue: "listings still missing a description,
+  /// least recently attempted first".
+  @@index([descriptionFetchedAt])
   @@index([workMode])
   @@index([seniority])
   /// Trigram indexes: the search matches skills with ILIKE/regex containing a
@@ -111,4 +120,34 @@ model RateLimit {
 model HostCooldown {
   host          String   @id
   nextAllowedAt DateTime
+}
+
+/// One cached fit analysis per person and listing. Cached because the analysis
+/// costs a model call: without this, re-opening the same offer — or paging back
+/// to it — would pay for it again.
+///
+/// Keyed by source+externalId rather than by JobListing id so an Adzuna result,
+/// which is served live and never stored, can be analysed and cached too.
+model JobFit {
+  id           String   @id @default(cuid())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String
+  source       String
+  externalId   String
+  /// Profile.updatedAt as it was when this ran. A new CV means new skills, so
+  /// a verdict computed against the old one is stale even though the listing
+  /// has not changed — this is what detects that.
+  profileStamp DateTime
+  /// 0-100. Not derived from the keyword score: the model weighs requirements
+  /// it read in prose, which is the whole point of asking it.
+  score        Int
+  /// strong | partial | weak
+  verdict      String
+  summary      String
+  strengths    String[]
+  gaps         String[]
+  createdAt    DateTime @default(now())
+
+  @@unique([userId, source, externalId])
+  @@index([userId])
 }

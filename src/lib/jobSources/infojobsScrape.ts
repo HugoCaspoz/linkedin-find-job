@@ -1,5 +1,6 @@
 import * as cheerio from "cheerio";
 import { FETCH_TIMEOUT_MS } from "./types";
+import { extractDescription, fetchDetailHtml } from "./detail";
 import type { NormalizedJob, WorkMode } from "./types";
 import { throttleHost } from "@/lib/rateLimit";
 
@@ -90,4 +91,29 @@ export async function scrapeInfoJobs(
   } catch {
     return [];
   }
+}
+
+/**
+ * InfoJobs' detail markup, most specific first. It has been through several
+ * redesigns and older offers are still served with the previous wrappers, so
+ * this is a list rather than a single selector — and `extractDescription`
+ * falls back to reading the page structurally when every one of them misses.
+ */
+const DESCRIPTION_SELECTORS = [
+  "[data-testid='offer-description']",
+  "#prefijo-descripcion",
+  ".ij-OfferDetail-description",
+  ".panel-canvas-item",
+  "#mainContent",
+];
+
+/** The description of a single offer, from its own page. */
+export async function fetchInfoJobsDescription(job: {
+  externalId: string;
+  url: string;
+}): Promise<string | undefined> {
+  const html = await fetchDetailHtml(job.url, "infojobs.net", "es-ES,es;q=0.9");
+  if (!html) return undefined;
+
+  return extractDescription(html, DESCRIPTION_SELECTORS);
 }

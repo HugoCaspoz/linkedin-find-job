@@ -94,12 +94,17 @@ hay tres acciones, todas desde *Tus datos* en el dashboard:
 
 | Acción | Endpoint | Qué hace |
 | --- | --- | --- |
-| Descargar | `GET /api/account/export` | JSON con usuario, perfil, `cvText` íntegro y skills. |
-| Borrar el CV | `DELETE /api/profile` | Borra `Profile` y, por cascada, `Skill`. La cuenta sigue. Idempotente. |
-| Borrar la cuenta | `DELETE /api/account` | Borra `User`; `Profile` y `Skill` caen por `ON DELETE CASCADE`. Pide la contraseña. |
+| Descargar | `GET /api/account/export` | JSON con usuario, perfil, `cvText` íntegro, skills y veredictos de encaje. |
+| Borrar el CV | `DELETE /api/profile` | Borra `Profile` y, por cascada, `Skill`; borra además `JobFit` explícitamente. La cuenta sigue. Idempotente. |
+| Borrar la cuenta | `DELETE /api/account` | Borra `User`; `Profile`, `Skill` y `JobFit` caen por `ON DELETE CASCADE`. Pide la contraseña. |
+
+`JobFit` (los veredictos de encaje cacheados) cuelga de `User`, no de `Profile`,
+así que ninguna cascada lo alcanza al borrar solo el CV. Se borra a mano en la
+misma transacción: son datos derivados del CV, citan trozos de él, y si no
+sobrevivirían a una petición de borrarlo.
 
 Al borrar la cuenta se limpian además las filas de `RateLimit` que identifican a
-esa persona (`upload:`, `search:`, `export:`, `account-delete:` y
+esa persona (`upload:`, `search:`, `fit:`, `export:`, `account-delete:` y
 `login:email:`). Las que van por IP (`login:ip:`, `register:`) **no** se tocan:
 son compartidas con cualquiera detrás de esa dirección, y borrarlas a petición
 sería una forma de resetear un contador de fuerza bruta cuando te convenga.
@@ -124,8 +129,11 @@ Cubren lo que se rompe solo: el mapeo de HTML a `NormalizedJob` de los tres
 scrapers (selectores, ids, modalidad, URLs sin query string), la construcción
 de los filtros de cada portal (`f_WT`, `en_remoto`), el parseo de Adzuna, y el
 manejo de la respuesta del modelo en `extractSkills.ts` (JSON entre prosa,
-duplicados, tope de 100 skills, respuesta cortada por `max_tokens`) y los
-umbrales de salud de `scrapeHealth.ts`. Todas las fuentes se prueban con `fetch`
+duplicados, tope de 100 skills, respuesta cortada por `max_tokens`), el manejo
+de la del análisis de encaje en `jobFit.ts`, la extracción de descripciones
+(selectores, fallback estructural, separación de bloques) y las señales que se
+leen del texto en `fitSignals.ts` (años pedidos, extractos). Y los umbrales de
+salud de `scrapeHealth.ts`. Todas las fuentes se prueban con `fetch`
 stubeado: los tests no salen a la red ni tocan Postgres.
 
 **Lo que estos tests NO detectan:** que LinkedIn, InfoJobs o Tecnoempleo cambien
@@ -158,6 +166,35 @@ usuario  ──>  /api/jobs/search  ──lee───────────�
                     └──live──>  Adzuna (API oficial, con key)
 ```
 
+#### La descripción, no solo el título
+
+Las páginas de resultados de LinkedIn, InfoJobs y Tecnoempleo **no traen la
+descripción de la oferta**: solo título, empresa y ubicación. Durante un tiempo
+eso dejó la columna `description` a NULL en todas las ofertas scrapeadas, y
+aunque el ranking siempre ha pesado la descripción, en la práctica juzgaba por
+el título — como mucho dos o tres skills por oferta.
+
+Por eso el worker hace una **segunda pasada** (`src/lib/descriptionFetch.ts`):
+entra en la página propia de cada oferta y guarda su descripción completa. Es
+una petición por oferta en vez de una por query — unas 25 veces más tráfico —
+así que va aparte del scrape y está acotada por tres lados:
+
+- **Presupuesto** por fuente y ciclo (`--descriptions N`, 40 por defecto).
+- **Deadline**, para que la pasada no se coma el `maxDuration` de la función
+  cuando se dispara por HTTP.
+- **Cooldown por host**, el mismo que usa el scrape de búsqueda.
+
+Cada intento se anota en `descriptionFetchedAt` — el intento, no el acierto.
+Sin eso, una oferta cuya página da 404 o pide login vuelve a la cola en cada
+ciclo para siempre y las demás no llegan a tener turno. Se reintenta a los 7
+días.
+
+Los selectores de cada sitio son la vía rápida y también lo que se rompe: una
+clase se renombra sin avisar. Cuando todos fallan, `extractDescription` lee la
+página **estructuralmente** (el bloque con más prosa, penalizando el texto de
+enlaces), así que un rediseño degrada la calidad de la descripción en vez de
+dejar la columna vacía otra vez.
+
 #### Cómo se puntúa una oferta
 
 El ranking se calcula **en SQL, antes del LIMIT**. Ordenar en JS lo que ya
@@ -170,6 +207,13 @@ por qué encaja cada oferta. Los resultados de Adzuna se puntúan con la misma
 regla en JS (`src/lib/matching.ts`) para que la lista combinada tenga un orden
 coherente.
 
+La respuesta **no lleva la descripción entera**. Ahora que las descripciones
+existen de verdad, una página de 24 resultados serían ~300 KB de JSON de texto
+que ninguna vista renderiza. Lo que viaja es un extracto de 400 caracteres, más
+las señales que se leen del texto completo en el servidor: `requiredYears` (los
+años que pide la oferta, el número más bajo de los que menciona) y
+`hasDescription`. Ver `src/lib/fitSignals.ts`.
+
 Las skills se buscan **por palabra completa**, no como subcadena: si no, "Go"
 casa con "Django" y "R" con "React", que es lo que convierte una lista de skills
 en ruido. El límite de palabra se aplica solo en los lados donde la skill
@@ -177,6 +221,31 @@ termina en carácter de palabra, porque anclar el final de "C++" no casaría nun
 ("+" no lo es). Limitación conocida: "C" sí casa con "C++" y "C#", porque ahí la
 C es palabra completa. Se documenta en vez de añadir reglas ad-hoc que romperían
 el matching de "C++" y "C#".
+
+#### Análisis de encaje con el CV
+
+Contar palabras responde a "¿aparece React?", no a "¿encajo aquí?". Una oferta
+puede puntuar alto y pedir ocho años de Kubernetes que no tienes, y otra pedir
+"experiencia en colas de mensajes" y puntuar cero contra un CV lleno de Kafka.
+
+Por eso hay un segundo nivel, bajo demanda: **`POST /api/jobs/fit`** manda la
+descripción completa y tu CV a Claude Haiku y devuelve veredicto
+(`strong` | `partial` | `weak`), puntuación 0-100, qué juega a tu favor y qué te
+falta. En la lista se abre con "Ver qué pide".
+
+Es una llamada por oferta que abres, no por oferta indexada. Analizar todo el
+índice al indexar habría costado ~1.500 llamadas por ciclo para veredictos que
+nadie va a mirar; así el coste lo marca lo que de verdad te interesa.
+
+- Se **cachea** en `JobFit`, con `profileStamp` = `Profile.updatedAt`. Subir un
+  CV nuevo invalida los veredictos; volver a abrir la misma oferta no cuesta
+  nada y no consume cuota.
+- Límite de 40 análisis por hora y usuario. El cacheado se sirve **antes** de
+  tocar el contador, para no gastar cuota releyendo lo ya analizado.
+- Las ofertas de Adzuna no se pueden analizar: se sirven en directo y no se
+  guardan, así que la descripción ya no existe cuando llegaría la petición. La
+  respuesta de búsqueda lo dice en `canAnalyze` en vez de dejar que el cliente
+  lo deduzca del nombre de la fuente.
 
 #### Índices
 
@@ -221,6 +290,7 @@ npm run scrape:prod                                # contra la DB de Railway (.e
 npm run scrape                                     # contra la DB local (.env)
 npm run scrape:prod -- --queries "React,Python"    # queries concretas
 npm run scrape:prod -- --max 10                    # tope de queries
+npm run scrape:prod -- --descriptions 100          # páginas de detalle por fuente (0 la salta)
 ```
 
 Son dos scripts porque son dos bases de datos: `scrape` usa `.env` (Postgres
