@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
-import Link from "next/link";
+import { Field, inputClass } from "@/components/ui";
+import { AuthShell, AuthSubmit } from "../AuthShell";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -45,20 +46,16 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex flex-1 items-center justify-center px-6 py-10">
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-sm space-y-5 rounded-sm border border-pauta bg-papel p-8"
-      >
-        <h1 className="text-2xl font-semibold tracking-tight">Iniciar sesión</h1>
-
+    <AuthShell
+      mode="/login"
+      title="Iniciar sesión"
+      subtitle="Bienvenido de nuevo. Tus skills siguen guardadas."
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
         {/* Visible labels rather than placeholders: a placeholder is gone the
             moment you start typing, which is when you most want to check what
             the field was asking for. */}
-        <div className="space-y-1.5">
-          <label htmlFor="email" className="block text-sm font-medium">
-            Email
-          </label>
+        <Field id="email" label="Email">
           <input
             id="email"
             type="email"
@@ -67,14 +64,11 @@ export default function LoginPage() {
             placeholder="tu@email.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full min-h-11 rounded-sm border border-pauta-fuerte bg-transparent px-3 text-sm placeholder:text-tinta-2"
+            className={inputClass()}
           />
-        </div>
+        </Field>
 
-        <div className="space-y-1.5">
-          <label htmlFor="password" className="block text-sm font-medium">
-            Contraseña
-          </label>
+        <Field id="password" label="Contraseña">
           <input
             id="password"
             type="password"
@@ -82,31 +76,20 @@ export default function LoginPage() {
             autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full min-h-11 rounded-sm border border-pauta-fuerte bg-transparent px-3 text-sm placeholder:text-tinta-2"
+            className={inputClass()}
           />
-        </div>
+        </Field>
 
         {error && (
-          <p role="alert" className="text-sm text-aviso">
+          <p role="alert" className="text-sm text-warn">
             {error}
           </p>
         )}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full min-h-11 rounded-sm bg-tinta text-sm font-medium text-papel transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {loading ? "Entrando..." : "Entrar"}
-        </button>
-
-        <p className="text-sm text-tinta-2">
-          ¿No tienes cuenta?{" "}
-          <Link href="/register" className="text-tinta underline">
-            Regístrate
-          </Link>
-        </p>
+        <AuthSubmit disabled={loading} className="!mt-6">
+          {loading ? "Entrando…" : "Entrar"}
+        </AuthSubmit>
       </form>
-    </div>
+    </AuthShell>
   );
 }

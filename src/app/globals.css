@@ -1,155 +1,148 @@
 @import "tailwindcss";
 
 /**
- * Two inks on paper.
+ * Dark first, one accent.
  *
- * The palette is borrowed from two-ink printing on engineering paper, because
- * what this app asks you to do is compare a parameter set across many
- * listings — the same job a component datasheet does. Paper, one text ink, and
- * a spot ink held back for measured values.
+ * The sheet-of-paper palette this replaced put two inks on a pale ground. The
+ * redesign inverts the premise: a cold near-black ground, one lime accent, and
+ * type that stays out of the way. Colour is scarce on purpose — the accent
+ * marks the fit gauge, the primary action and the current tab, and nothing
+ * else, so a lit segment always means "measured".
  *
- * Two plates, not one. `--marca` prints the chrome — buttons, the active tab,
- * a selected chip — and `--medida` prints measured values and nothing else.
- *
- * An earlier pass gave chrome to the text ink and reserved the only colour for
- * measurements, which was too strict by half: it left ninety per cent of the
- * screen in two tones and read as monochrome. A two-colour print job has two
- * colours. What survives from that rule is the part that matters — `--medida`
- * still means "measured" and appears nowhere else, so the gauge keeps its
- * meaning.
- *
- * Not blue, deliberately. InfoJobs, LinkedIn and Tecnoempleo are all blue, and
- * this tool aggregates those three — looking like them is the one thing it
- * cannot afford to do.
- *
- * Appearance is keyed on `data-theme`, resolved before first paint by the
- * inline script in the root layout, so there are exactly two palettes and no
- * third "system" branch to keep in sync.
+ * Dark is the default and needs no attribute; `data-theme="light"` is the only
+ * override. The inline boot script in the root layout resolves it before first
+ * paint, so there is no flash and no third "system" branch on screen.
  */
-:root,
-:root[data-theme="light"] {
-  /* Pale celadon, not the warm cream every generated design reaches for and
-     not a neutral grey either. Paper that has been through a press has a cast. */
-  --papel: #ecede7;
-  /* Ruling and the filled label cells. A datasheet separates fields with
-     tinted blocks, not hairlines — that is what keeps this off the broadsheet
-     look. */
-  --pauta: #d3d8cf;
-  --pauta-fuerte: #adb5aa;
-  /* Ink, not black: printers' ink is blue-black, and pure #000 on paper is the
-     one value that never occurs in print. */
-  --tinta: #16232b; /* 13.6:1 on --papel */
-  --tinta-2: #55666e; /* 5.1:1 on --papel */
+:root {
+  --bg: #0d1011;
+  --surf: #14181a;
+  --surf2: #1b2123;
+  --line: #232b2d;
+  --line2: #333d40;
 
-  /* First plate. Chrome — buttons, the active tab, a selected chip. */
-  --marca: #1f5d62; /* 6.4:1 on --papel */
-  --marca-suave: rgb(31 93 98 / 0.10);
+  --tx: #eef2f1;
+  --tx2: #9aa6a8;
+  --tx3: #6d7779;
 
-  /* Second plate. Measured values and the fit gauge, nothing else. */
-  --medida: #985006; /* 5.1:1 on --papel */
-  --medida-suave: rgb(152 80 6 / 0.12);
+  --acc: #c2f24a;
+  --acc-tx: #0f1410;
+  --acc-soft: rgb(194 242 74 / 0.13);
+  --acc-line: rgb(194 242 74 / 0.35);
 
-  --aviso: #a32d1e; /* 6.0:1 on --papel */
-  --aviso-suave: rgb(163 45 30 / 0.09);
-  --ok: #2a6b3d; /* 5.5:1 on --papel */
-
-  color-scheme: light;
-}
-
-/* The negative: the same sheet photographed, not a separate "dark theme". */
-:root[data-theme="dark"] {
-  --papel: #0f1418;
-  --pauta: #232b2f;
-  --pauta-fuerte: #3a4549;
-  --tinta: #e8ede9; /* 15.6:1 on --papel */
-  --tinta-2: #93a5a8; /* 7.2:1 on --papel */
-
-  --marca: #6fd3d0; /* 10.5:1 on --papel */
-  --marca-suave: rgb(111 211 208 / 0.14);
-
-  --medida: #f0a64a; /* 9.1:1 on --papel */
-  --medida-suave: rgb(240 166 74 / 0.16);
-
-  --aviso: #ff8a6b; /* 8.0:1 on --papel */
-  --aviso-suave: rgb(255 138 107 / 0.14);
-  --ok: #63c88a; /* 9.0:1 on --papel */
+  --warn: #ff9a6b;
+  --ok: #7fdca0;
 
   color-scheme: dark;
 }
 
+/**
+ * The accent changes value between themes rather than staying one colour.
+ * The lime is illegible on white — as ink on the light ground it lands near
+ * 1.6:1 — so light mode prints an olive instead: ~6:1 with white type on it,
+ * ~5.6:1 as type on `--bg`. Unifying the two accents is the one shortcut this
+ * palette cannot take.
+ */
+:root[data-theme="light"] {
+  --bg: #f5f7f3;
+  --surf: #ffffff;
+  --surf2: #eef1ea;
+  --line: #e2e6dd;
+  --line2: #cfd5c8;
+
+  --tx: #101617;
+  --tx2: #596363;
+  --tx3: #8b9491;
+
+  --acc: #496b00;
+  --acc-tx: #ffffff;
+  --acc-soft: rgb(73 107 0 / 0.10);
+  --acc-line: rgb(73 107 0 / 0.38);
+
+  --warn: #a8480f;
+  --ok: #2b6b41;
+
+  color-scheme: light;
+}
+
 @theme inline {
-  --color-papel: var(--papel);
-  --color-pauta: var(--pauta);
-  --color-pauta-fuerte: var(--pauta-fuerte);
-  --color-tinta: var(--tinta);
-  --color-tinta-2: var(--tinta-2);
+  --color-bg: var(--bg);
+  --color-surf: var(--surf);
+  --color-surf2: var(--surf2);
+  --color-line: var(--line);
+  --color-line2: var(--line2);
 
-  --color-marca: var(--marca);
-  --color-marca-suave: var(--marca-suave);
+  --color-tx: var(--tx);
+  --color-tx2: var(--tx2);
+  --color-tx3: var(--tx3);
 
-  --color-medida: var(--medida);
-  --color-medida-suave: var(--medida-suave);
+  --color-acc: var(--acc);
+  --color-acc-tx: var(--acc-tx);
+  --color-acc-soft: var(--acc-soft);
+  --color-acc-line: var(--acc-line);
 
-  --color-aviso: var(--aviso);
-  --color-aviso-suave: var(--aviso-suave);
+  --color-warn: var(--warn);
   --color-ok: var(--ok);
 
   /* Fallback chain matters: global-error.tsx replaces the root layout, so the
      next/font variable is undefined there and an unguarded var() would drop
      the whole declaration and render that page in the browser serif. */
-  --font-sans: var(--font-archivo, ui-sans-serif, system-ui, sans-serif);
-  --font-mono: var(--font-plex-mono, ui-monospace, monospace);
+  --font-sans: var(--font-instrument, ui-sans-serif, system-ui, sans-serif);
+  --font-mono: var(--font-jetbrains, ui-monospace, monospace);
 }
 
+/* 15px, not the browser's 16: every size in the handoff is set against it, and
+   the half-steps (13.5, 14.5) only land where they were drawn if the base
+   agrees. */
 body {
-  background: var(--papel);
-  color: var(--tinta);
+  background: var(--bg);
+  color: var(--tx);
+  font-size: 15px;
+  line-height: 1.5;
 }
 
 /**
- * Type has one rule: if it is a measured value, a label or a unit, it is set in
- * the mono; if it is prose, it is set in Archivo. Following that consistently is
- * what makes the page read as a sheet rather than as a website with a
- * monospace accent.
+ * Type has one rule: prose is set in Instrument Sans, and anything that is a
+ * measured value — a score, a fraction, a count, a year — is set in the mono.
+ * Mono never carries a sentence. Holding that line is what keeps the numbers
+ * reading as readings rather than as decoration.
+ *
+ * Headings need no class of their own: they are the body face at a larger size
+ * with the tracking pulled in, which the two utilities say more plainly than a
+ * name would.
  */
-.display {
-  font-family: var(--font-sans);
-  /* Archivo carries a width axis. Widening the display face and leaving the
-     body at normal width gives two voices out of one family — more coherent,
-     and one fewer font to download, than pairing two unrelated faces. */
-  font-variation-settings: "wdth" 112;
-  font-weight: 650;
-  letter-spacing: -0.015em;
-}
-
-/** Field labels on the sheet: small, spaced, quiet, never bold. */
+/**
+ * Group label: the small caps above a filter block or a skill category.
+ *
+ * Deliberately sets no colour. It is defined after Tailwind's utilities, so a
+ * `color` here would win against `text-warn` on the same element and quietly
+ * grey out the two labels that are supposed to be coloured.
+ */
 .rotulo {
-  font-family: var(--font-mono);
-  font-size: 0.6875rem;
+  font-size: 11.5px;
+  font-weight: 600;
   line-height: 1.2;
-  letter-spacing: 0.09em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--tinta-2);
 }
 
 /** A measured value. Tabular figures so a column of them lines up. */
 .valor {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.01em;
 }
 
-/* Focus belongs to the chrome plate: it marks what the interface is acting on,
-   which is chrome's job, and it keeps the measurement ink meaning one thing. */
+/* Focus is the accent's one non-measurement job: it says what the interface is
+   acting on. Fields also tint their border on focus, but a border alone is too
+   quiet to find by keyboard. */
 :focus-visible {
-  outline: 2px solid var(--marca);
+  outline: 2px solid var(--acc);
   outline-offset: 2px;
 }
 
 /**
  * Motion.
  *
- * Every animation reports something: that results arrived, that a search is
+ * Every animation reports something: that a page arrived, that a search is
  * running, that a press registered. Nothing moves for decoration — this is an
  * app you check dozens of times a day, and animating a frequent interaction
  * just makes people wait for it.
@@ -157,7 +150,7 @@ body {
 @keyframes rise-in {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -186,7 +179,7 @@ body {
 }
 
 .motion-rise {
-  animation: rise-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: rise-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .motion-fade {

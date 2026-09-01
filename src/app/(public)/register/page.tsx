@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
-import Link from "next/link";
+import { Field, inputClass } from "@/components/ui";
+import { AuthShell, AuthSubmit } from "../AuthShell";
 
 const MIN_PASSWORD = 8;
 
@@ -66,34 +67,24 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="flex flex-1 items-center justify-center px-6 py-10">
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-sm space-y-5 rounded-sm border border-pauta bg-papel p-8"
-      >
-        <h1 className="text-2xl font-semibold tracking-tight">Crear cuenta</h1>
-
-        <div className="space-y-1.5">
-          <label htmlFor="name" className="block text-sm font-medium">
-            Nombre{" "}
-            <span className="font-normal text-tinta-2">
-              (opcional)
-            </span>
-          </label>
+    <AuthShell
+      mode="/register"
+      title="Crear cuenta"
+      subtitle="Gratis, y sin tarjeta. Te lleva menos de un minuto."
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <Field id="name" label="Nombre" optional>
           <input
             id="name"
             type="text"
             autoComplete="name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full min-h-11 rounded-sm border border-pauta-fuerte bg-transparent px-3 text-sm placeholder:text-tinta-2"
+            className={inputClass()}
           />
-        </div>
+        </Field>
 
-        <div className="space-y-1.5">
-          <label htmlFor="email" className="block text-sm font-medium">
-            Email
-          </label>
+        <Field id="email" label="Email">
           <input
             id="email"
             type="email"
@@ -102,14 +93,16 @@ export default function RegisterPage() {
             placeholder="tu@email.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full min-h-11 rounded-sm border border-pauta-fuerte bg-transparent px-3 text-sm placeholder:text-tinta-2"
+            className={inputClass()}
           />
-        </div>
+        </Field>
 
-        <div className="space-y-1.5">
-          <label htmlFor="password" className="block text-sm font-medium">
-            Contraseña
-          </label>
+        <Field
+          id="password"
+          label="Contraseña"
+          hint={`Mínimo ${MIN_PASSWORD} caracteres`}
+          hintTone={passwordTooShort ? "danger" : "muted"}
+        >
           <input
             id="password"
             type="password"
@@ -120,42 +113,20 @@ export default function RegisterPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             onBlur={() => setPasswordTouched(true)}
-            className="w-full min-h-11 rounded-sm border border-pauta-fuerte bg-transparent px-3 text-sm placeholder:text-tinta-2"
+            className={inputClass()}
           />
-          <p
-            id="password-hint"
-            className={
-              "text-sm " +
-              (passwordTooShort
-                ? "text-aviso"
-                : "text-tinta-2")
-            }
-          >
-            Mínimo {MIN_PASSWORD} caracteres
-          </p>
-        </div>
+        </Field>
 
         {error && (
-          <p role="alert" className="text-sm text-aviso">
+          <p role="alert" className="text-sm text-warn">
             {error}
           </p>
         )}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full min-h-11 rounded-sm bg-tinta text-sm font-medium text-papel transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {loading ? "Creando..." : "Crear cuenta"}
-        </button>
-
-        <p className="text-sm text-tinta-2">
-          ¿Ya tienes cuenta?{" "}
-          <Link href="/login" className="text-tinta underline">
-            Inicia sesión
-          </Link>
-        </p>
+        <AuthSubmit disabled={loading} className="!mt-6">
+          {loading ? "Creando…" : "Crear cuenta"}
+        </AuthSubmit>
       </form>
-    </div>
+    </AuthShell>
   );
 }

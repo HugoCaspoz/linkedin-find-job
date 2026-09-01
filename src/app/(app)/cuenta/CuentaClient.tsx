@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { errorMessage, readJson } from "@/lib/ui";
-import { Banner, Button, Sheet, Field, buttonClass, inputClass } from "@/components/ui";
+import { Banner, Button, Card, Field, buttonClass, inputClass } from "@/components/ui";
 
 export function CuentaClient({
   email,
@@ -91,10 +91,12 @@ export function CuentaClient({
   }
 
   return (
-    <div className="mx-auto w-full max-w-2xl">
+    <div className="motion-rise mx-auto w-full max-w-[760px] px-6 pb-24 pt-11">
       <header className="mb-8">
-        <h1 className="display text-2xl">Tu cuenta</h1>
-        <p className="mt-1.5 text-tinta-2">{email}</p>
+        <h1 className="text-[34px] font-bold leading-tight tracking-[-0.03em]">
+          Tu cuenta
+        </h1>
+        <p className="valor mt-2 text-sm text-tx2">{email}</p>
       </header>
 
       {/* Both outcomes land in one live region: these follow a button press,
@@ -104,9 +106,9 @@ export function CuentaClient({
         {dataNotice && <Banner tone="success">{dataNotice}</Banner>}
       </div>
 
-      <Sheet>
-        <h2 className="font-medium">Tus datos</h2>
-        <p className="mt-1.5 text-sm text-tinta-2">
+      <Card className="p-[26px]">
+        <h2 className="text-[21px] font-bold tracking-[-0.025em]">Tus datos</h2>
+        <p className="mt-2 text-sm text-tx2">
           Guardamos el texto completo de tu CV para detectar tus skills. Puedes
           descargarlo o borrarlo cuando quieras.
         </p>
@@ -124,14 +126,16 @@ export function CuentaClient({
             {busyAction === "cv" ? "Borrando…" : "Borrar mi CV y mis skills"}
           </Button>
         </div>
-      </Sheet>
+      </Card>
 
       {/* Separated into its own card rather than a section inside the one
           above: the irreversible action should not sit two lines below a
           harmless download button. */}
-      <div className="mt-6 rounded-sm border border-aviso/40 bg-aviso-suave p-6">
-        <h2 className="font-medium text-aviso">Borrar mi cuenta</h2>
-        <p className="mt-1.5 text-sm text-tinta-2">
+      <div className="mt-6 rounded-2xl border border-warn/40 bg-surf p-[26px]">
+        <h2 className="text-[21px] font-bold tracking-[-0.025em] text-warn">
+          Borrar mi cuenta
+        </h2>
+        <p className="mt-2 text-sm text-tx2">
           Borra la cuenta y todos los datos asociados. No se puede deshacer.
           Confirma con tu contraseña.
         </p>
